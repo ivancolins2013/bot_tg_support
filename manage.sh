@@ -108,6 +108,13 @@ interactive_menu() {
 EOF
 
     read -r -p "Выбери пункт [0-10]: " choice
+    choice="${choice//$'\r'/}"
+    choice="${choice#"${choice%%[![:space:]]*}"}"
+    choice="${choice%"${choice##*[![:space:]]}"}"
+    if [[ -z "$choice" ]]; then
+      continue
+    fi
+
     case "$choice" in
       1) start_service ;;
       2) stop_service ;;
