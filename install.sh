@@ -13,6 +13,26 @@ MANAGE_AUTOOPEN_START="# >>> support-bot manage auto-open >>>"
 MANAGE_AUTOOPEN_END="# <<< support-bot manage auto-open <<<"
 SUDO_CMD=""
 
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+  COLOR_RESET=$'\033[0m'
+  COLOR_BOLD=$'\033[1m'
+  COLOR_DIM=$'\033[2m'
+  COLOR_RED=$'\033[31m'
+  COLOR_GREEN=$'\033[32m'
+  COLOR_YELLOW=$'\033[33m'
+  COLOR_BLUE=$'\033[34m'
+  COLOR_CYAN=$'\033[36m'
+else
+  COLOR_RESET=""
+  COLOR_BOLD=""
+  COLOR_DIM=""
+  COLOR_RED=""
+  COLOR_GREEN=""
+  COLOR_YELLOW=""
+  COLOR_BLUE=""
+  COLOR_CYAN=""
+fi
+
 log() {
   printf "[install] %s\n" "$1"
 }
@@ -745,6 +765,116 @@ EOF
       0) exit 0 ;;
       *)
         echo "Неверный выбор. Введи число от 0 до 11."
+        ;;
+    esac
+  done
+}
+
+menu_header() {
+  local title="$1"
+  local line="=========================================="
+  echo
+  printf "%b%s%b\n" "${COLOR_CYAN}${COLOR_BOLD}" "$line" "$COLOR_RESET"
+  printf "%b%s%b\n" "${COLOR_CYAN}${COLOR_BOLD}" "$title" "$COLOR_RESET"
+  printf "%b%s%b\n" "${COLOR_CYAN}${COLOR_BOLD}" "$line" "$COLOR_RESET"
+}
+
+menu_item() {
+  local number="$1"
+  local text="$2"
+  printf "%b%s)%b %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$number" "$COLOR_RESET" "$text"
+}
+
+colorize_state() {
+  local state="${1:-}"
+  case "$state" in
+    "готово"|"установлен"|"включен"|"включено"|"запущен")
+      printf "%b%s%b" "$COLOR_GREEN" "$state" "$COLOR_RESET"
+      ;;
+    "не готово"|"ошибки"|"не установлен"|"остановлен"|"выключен"|"выключено"|"нет systemd"|*"не задан"*|*"неверный"*)
+      printf "%b%s%b" "$COLOR_RED" "$state" "$COLOR_RESET"
+      ;;
+    *)
+      printf "%b%s%b" "$COLOR_YELLOW" "$state" "$COLOR_RESET"
+      ;;
+  esac
+}
+
+log() {
+  printf "%b[install]%b %s\n" "${COLOR_CYAN}${COLOR_BOLD}" "$COLOR_RESET" "$1"
+}
+
+die() {
+  printf "%b[install] ERROR:%b %s\n" "${COLOR_RED}${COLOR_BOLD}" "$COLOR_RESET" "$1" >&2
+  exit 1
+}
+
+interactive_menu() {
+  while true; do
+    local project_state
+    local env_state
+    local venv_state
+    local manage_state
+    local manage_autostart_state
+    local service_state
+    local autostart_state
+
+    project_state="$(colorize_state "$(project_ready_text)")"
+    env_state="$(colorize_state "$(env_ready_text)")"
+    venv_state="$(colorize_state "$(venv_ready_text)")"
+    manage_state="$(colorize_state "$(manage_ready_text)")"
+    manage_autostart_state="$(colorize_state "$(manage_autostart_text)")"
+    service_state="$(colorize_state "$(service_state_text)")"
+    autostart_state="$(colorize_state "$(autostart_state_text)")"
+
+    menu_header "Установка и подготовка бота"
+    printf "%bСостояние:%b\n" "$COLOR_DIM" "$COLOR_RESET"
+    printf "  %bпроект:%b      %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$project_state"
+    printf "  %b.env:%b        %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$env_state"
+    printf "  %b.venv:%b       %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$venv_state"
+    printf "  %bmanage.sh:%b   %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$manage_state"
+    printf "  %bавто-manage:%b %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$manage_autostart_state"
+    printf "  %bсервис:%b      %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$service_state"
+    printf "  %bавтозапуск:%b  %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$autostart_state"
+    echo
+
+    menu_item "1" "Настроить .env (BOT_TOKEN + ADMIN_CHAT_ID + DB_*)"
+    menu_item "2" "Проверка проекта и .env"
+    menu_item "3" "Установить системные компоненты"
+    menu_item "4" "Установить Python-зависимости (.venv)"
+    menu_item "5" "Создать/обновить systemd-сервис"
+    menu_item "6" "Скачать manage.sh (скрипт управления)"
+    menu_item "7" "Полная установка (все шаги)"
+    menu_item "8" "Открыть manage.sh (управление ботом)"
+    menu_item "9" "Включить авто-открытие manage.sh при SSH-входе"
+    menu_item "10" "Выключить авто-открытие manage.sh"
+    menu_item "11" "Полностью удалить бота с VDS"
+    menu_item "0" "Выход"
+
+    printf "%bВыбери пункт [0-11]: %b" "$COLOR_YELLOW" "$COLOR_RESET"
+    read -r choice
+    choice="${choice//$'\r'/}"
+    choice="${choice#"${choice%%[![:space:]]*}"}"
+    choice="${choice%"${choice##*[![:space:]]}"}"
+    if [[ -z "$choice" ]]; then
+      continue
+    fi
+
+    case "$choice" in
+      1) setup_bot_identity ;;
+      2) check_step ;;
+      3) install_system_packages ;;
+      4) install_python_deps; prepare_project_files ;;
+      5) write_systemd_service ;;
+      6) download_manage_script ;;
+      7) full_install ;;
+      8) open_manage_script ;;
+      9) enable_manage_autostart ;;
+      10) disable_manage_autostart ;;
+      11) purge_bot ;;
+      0) exit 0 ;;
+      *)
+        printf "%bНеверный выбор. Введи число от 0 до 11.%b\n" "$COLOR_RED" "$COLOR_RESET"
         ;;
     esac
   done
