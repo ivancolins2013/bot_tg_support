@@ -9,6 +9,8 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 VENV_DIR="${VENV_DIR:-$APP_DIR/.venv}"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}.service"
 MANAGE_SH_URL="${MANAGE_SH_URL:-}"
+MANAGE_AUTOOPEN_START="# >>> support-bot manage auto-open >>>"
+MANAGE_AUTOOPEN_END="# <<< support-bot manage auto-open <<<"
 SUDO_CMD=""
 
 log() {
@@ -31,9 +33,12 @@ usage() {
   ./install.sh python          # .venv + pip install -r requirements.txt
   ./install.sh service         # создать/обновить systemd-сервис
   ./install.sh manage [URL]    # скачать manage.sh (скрипт управления)
+  ./install.sh open            # открыть manage.sh (меню управления)
+  ./install.sh auto-on         # включить авто-открытие manage.sh при SSH-входе
+  ./install.sh auto-off        # выключить авто-открытие manage.sh при SSH-входе
 
 Русские алиасы:
-  полная, окружение, проверка, компоненты, питон, сервис, управление, помощь
+  полная, окружение, проверка, компоненты, питон, сервис, управление, открыть, авто-вкл, авто-выкл, помощь
 
 Примечание:
   Запуск/остановка/логи бота выполняются через manage.sh.
@@ -277,6 +282,81 @@ manage_ready_text() {
   fi
 }
 
+manage_autostart_text() {
+  local bashrc="$HOME/.bashrc"
+  if [[ -f "$bashrc" ]] && grep -Fq "$MANAGE_AUTOOPEN_START" "$bashrc"; then
+    echo "включено"
+  else
+    echo "выключено"
+  fi
+}
+
+remove_manage_autostart_block() {
+  local bashrc="$HOME/.bashrc"
+  local tmp=""
+  if [[ ! -f "$bashrc" ]]; then
+    return
+  fi
+
+  tmp="$(mktemp)"
+  awk -v start="$MANAGE_AUTOOPEN_START" -v end="$MANAGE_AUTOOPEN_END" '
+    $0 == start {skip=1; next}
+    $0 == end {skip=0; next}
+    !skip {print}
+  ' "$bashrc" >"$tmp"
+  mv "$tmp" "$bashrc"
+}
+
+enable_manage_autostart() {
+  local manage_path="$APP_DIR/manage.sh"
+  local bashrc="$HOME/.bashrc"
+
+  if [[ ! -f "$manage_path" ]]; then
+    echo "manage.sh не найден. Сначала скачай/добавь его (пункт 6)."
+    return
+  fi
+
+  chmod +x "$manage_path"
+  touch "$bashrc"
+  remove_manage_autostart_block
+
+  cat >>"$bashrc" <<EOF
+
+$MANAGE_AUTOOPEN_START
+if [[ \$- == *i* ]] && [[ -n "\${SSH_TTY:-}" ]] && [[ -z "\${MANAGE_SH_OPENED:-}" ]]; then
+  export MANAGE_SH_OPENED=1
+  if [[ -x "$manage_path" ]]; then
+    "$manage_path"
+  fi
+fi
+$MANAGE_AUTOOPEN_END
+EOF
+
+  log "Авто-открытие manage.sh включено в $bashrc"
+}
+
+disable_manage_autostart() {
+  remove_manage_autostart_block
+  log "Авто-открытие manage.sh выключено."
+}
+
+ask_manage_autostart_enable() {
+  local answer=""
+  if [[ ! -t 0 ]]; then
+    return 0
+  fi
+
+  read -r -p "Включить авто-открытие manage.sh при SSH-входе? [y/N]: " answer
+  case "${answer,,}" in
+    y|yes|д|да)
+      enable_manage_autostart
+      ;;
+    *)
+      log "Авто-открытие manage.sh не включено."
+      ;;
+  esac
+}
+
 service_state_text() {
   if ! command -v systemctl >/dev/null 2>&1; then
     echo "нет systemd"
@@ -392,6 +472,18 @@ ask_manage_script_install() {
   esac
 }
 
+open_manage_script() {
+  local manage_path="$APP_DIR/manage.sh"
+  if [[ ! -f "$manage_path" ]]; then
+    echo "manage.sh не найден. Сначала скачай/добавь его (пункт 6)."
+    return
+  fi
+
+  chmod +x "$manage_path"
+  log "Открываю меню управления: $manage_path"
+  bash "$manage_path"
+}
+
 write_systemd_service() {
   detect_sudo
   require_cmd systemctl
@@ -445,6 +537,7 @@ full_install() {
   write_systemd_service
   start_service
   ask_manage_script_install
+  ask_manage_autostart_enable
   log "Готово: полная установка завершена."
 }
 
@@ -454,6 +547,7 @@ interactive_menu() {
     local env_state
     local venv_state
     local manage_state
+    local manage_autostart_state
     local service_state
     local autostart_state
 
@@ -461,6 +555,7 @@ interactive_menu() {
     env_state="$(env_ready_text)"
     venv_state="$(venv_ready_text)"
     manage_state="$(manage_ready_text)"
+    manage_autostart_state="$(manage_autostart_text)"
     service_state="$(service_state_text)"
     autostart_state="$(autostart_state_text)"
 
@@ -474,6 +569,7 @@ interactive_menu() {
   .env:       $env_state
   .venv:      $venv_state
   manage.sh:  $manage_state
+  авто-manage: $manage_autostart_state
   сервис:     $service_state
   автозапуск: $autostart_state
 
@@ -484,10 +580,13 @@ interactive_menu() {
 5) Создать/обновить systemd-сервис
 6) Скачать manage.sh (скрипт управления)
 7) Полная установка (все шаги)
+8) Открыть manage.sh (управление ботом)
+9) Включить авто-открытие manage.sh при SSH-входе
+10) Выключить авто-открытие manage.sh
 0) Выход
 EOF
 
-    read -r -p "Выбери пункт [0-7]: " choice
+    read -r -p "Выбери пункт [0-10]: " choice
     case "$choice" in
       1) setup_bot_identity ;;
       2) check_step ;;
@@ -496,9 +595,12 @@ EOF
       5) write_systemd_service ;;
       6) download_manage_script ;;
       7) full_install ;;
+      8) open_manage_script ;;
+      9) enable_manage_autostart ;;
+      10) disable_manage_autostart ;;
       0) exit 0 ;;
       *)
-        echo "Неверный выбор. Введи число от 0 до 7."
+        echo "Неверный выбор. Введи число от 0 до 10."
         ;;
     esac
   done
@@ -538,6 +640,15 @@ main() {
       ;;
     manage|manager|управление)
       download_manage_script "${2:-}"
+      ;;
+    open|run-manage|открыть)
+      open_manage_script
+      ;;
+    auto-on|automanage-on|авто-вкл)
+      enable_manage_autostart
+      ;;
+    auto-off|automanage-off|авто-выкл)
+      disable_manage_autostart
       ;;
     -h|--help|help|помощь)
       usage
