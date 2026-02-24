@@ -36,9 +36,10 @@ usage() {
   ./install.sh open            # открыть manage.sh (меню управления)
   ./install.sh auto-on         # включить авто-открытие manage.sh при SSH-входе
   ./install.sh auto-off        # выключить авто-открытие manage.sh при SSH-входе
+  ./install.sh purge           # полностью удалить бота с VDS
 
 Русские алиасы:
-  полная, окружение, проверка, компоненты, питон, сервис, управление, открыть, авто-вкл, авто-выкл, помощь
+  полная, окружение, проверка, компоненты, питон, сервис, управление, открыть, авто-вкл, авто-выкл, удалить, помощь
 
 Примечание:
   Запуск/остановка/логи бота выполняются через manage.sh.
@@ -357,6 +358,47 @@ ask_manage_autostart_enable() {
   esac
 }
 
+purge_bot() {
+  detect_sudo
+  require_cmd systemctl
+
+  local app_dir="$APP_DIR"
+  if [[ -z "$app_dir" || "$app_dir" == "/" || "$app_dir" == "/root" ]]; then
+    die "Небезопасный APP_DIR для удаления: '$app_dir'"
+  fi
+
+  if [[ ! -t 0 ]]; then
+    die "Для полной очистки нужен интерактивный запуск (подтверждение)."
+  fi
+
+  echo
+  echo "ВНИМАНИЕ: будет полностью удален бот с VDS."
+  echo "Сервис: $SERVICE_NAME"
+  echo "Папка проекта: $app_dir"
+  echo "Системный сервис-файл: $SERVICE_PATH"
+  echo
+  read -r -p "Для подтверждения введи DELETE: " confirm
+  if [[ "$confirm" != "DELETE" ]]; then
+    echo "Отменено."
+    return
+  fi
+
+  disable_manage_autostart || true
+  ${SUDO_CMD} systemctl stop "$SERVICE_NAME" || true
+  ${SUDO_CMD} systemctl disable "$SERVICE_NAME" || true
+  pkill -f "$app_dir/bot.py" || true
+
+  ${SUDO_CMD} rm -f "$SERVICE_PATH"
+  ${SUDO_CMD} systemctl daemon-reload || true
+  ${SUDO_CMD} systemctl reset-failed || true
+
+  rm -rf "$app_dir"
+
+  echo "Бот полностью удален с VDS."
+  echo "Текущую SSH-сессию можно закрыть."
+  exit 0
+}
+
 service_state_text() {
   if ! command -v systemctl >/dev/null 2>&1; then
     echo "нет systemd"
@@ -583,10 +625,11 @@ interactive_menu() {
 8) Открыть manage.sh (управление ботом)
 9) Включить авто-открытие manage.sh при SSH-входе
 10) Выключить авто-открытие manage.sh
+11) Полностью удалить бота с VDS
 0) Выход
 EOF
 
-    read -r -p "Выбери пункт [0-10]: " choice
+    read -r -p "Выбери пункт [0-11]: " choice
     case "$choice" in
       1) setup_bot_identity ;;
       2) check_step ;;
@@ -598,9 +641,10 @@ EOF
       8) open_manage_script ;;
       9) enable_manage_autostart ;;
       10) disable_manage_autostart ;;
+      11) purge_bot ;;
       0) exit 0 ;;
       *)
-        echo "Неверный выбор. Введи число от 0 до 10."
+        echo "Неверный выбор. Введи число от 0 до 11."
         ;;
     esac
   done
@@ -649,6 +693,9 @@ main() {
       ;;
     auto-off|automanage-off|авто-выкл)
       disable_manage_autostart
+      ;;
+    purge|remove|удалить)
+      purge_bot
       ;;
     -h|--help|help|помощь)
       usage

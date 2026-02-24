@@ -26,6 +26,7 @@ usage() {
   ./manage.sh live
   ./manage.sh enable
   ./manage.sh disable
+  ./manage.sh install
   ./manage.sh help
 
 Русские алиасы:
@@ -37,6 +38,7 @@ usage() {
   ./manage.sh консоль
   ./manage.sh включить
   ./manage.sh выключить
+  ./manage.sh инстал
   ./manage.sh помощь
 
 Параметры:
@@ -101,10 +103,11 @@ interactive_menu() {
 7) Выключить автозапуск
 8) Справка
 9) Консоль в реальном времени
+10) Открыть install.sh
 0) Выход
 EOF
 
-    read -r -p "Выбери пункт [0-9]: " choice
+    read -r -p "Выбери пункт [0-10]: " choice
     case "$choice" in
       1) start_service ;;
       2) stop_service ;;
@@ -118,9 +121,10 @@ EOF
       7) disable_service ;;
       8) usage ;;
       9) live_console_and_back ;;
+      10) open_install_script ;;
       0) exit 0 ;;
       *)
-        echo "Неверный выбор. Введи число от 0 до 9."
+        echo "Неверный выбор. Введи число от 0 до 10."
         ;;
     esac
   done
@@ -205,6 +209,20 @@ disable_service() {
   systemctl is-enabled "$SERVICE_NAME" || true
 }
 
+open_install_script() {
+  local install_path
+  install_path="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/install.sh"
+
+  if [[ ! -f "$install_path" ]]; then
+    echo "install.sh не найден рядом с manage.sh."
+    return
+  fi
+
+  chmod +x "$install_path"
+  echo "Открываю меню установщика: $install_path"
+  bash "$install_path"
+}
+
 main() {
   require_systemctl
 
@@ -243,6 +261,9 @@ main() {
       ;;
     disable|выключить)
       disable_service
+      ;;
+    install|installer|инстал|установщик)
+      open_install_script
       ;;
     -h|--help|help|помощь)
       usage
