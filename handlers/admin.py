@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 
 import logging
 
@@ -56,7 +56,7 @@ async def get_admin_title(
     Вернуть красивую должность админа:
     - custom_title из беседы (например, 'Владелец', 'Гл. админ')
     - или 'Оператор' для создателя без титула
-    - РёР»Рё @username / id
+    - или @username / id
     """
     try:
         member = await bot.get_chat_member(settings.admin_chat_id, user_id)
@@ -170,8 +170,8 @@ async def build_stats_text(settings: Settings, bot: Bot) -> str:
     lines.append(f"• 🟡 В работе: {by_status.get('in_work', 0)}\n")
     lines.append(f"• ⚪ Закрытых: {by_status.get('closed', 0)}\n")
     lines.append("\n")
-    lines.append(f"Р—Р° РїРѕСЃР»РµРґРЅРёРµ 24 С‡Р°СЃР°: {overview['last_24h']}\n")
-    lines.append(f"Р—Р° РїРѕСЃР»РµРґРЅРёРµ 7 РґРЅРµР№: {overview['last_7d']}\n")
+    lines.append(f"За последние 24 часа: {overview['last_24h']}\n")
+    lines.append(f"За последние 7 дней: {overview['last_7d']}\n")
     lines.extend(await build_top_admin_lines(assignee_rows, settings, bot))
 
     return "".join(lines)
@@ -237,18 +237,18 @@ def parse_ticket_id_from_command(text: str | None) -> int | None:
 
 def format_optional(value: object | None) -> str:
     if value is None:
-        return "РЅРµ СѓРєР°Р·Р°РЅРѕ"
+        return "не указано"
     if isinstance(value, str) and not value.strip():
-        return "РЅРµ СѓРєР°Р·Р°РЅРѕ"
+        return "не указано"
     return str(value)
 
 
 def format_bool(value: bool | None) -> str:
     if value is True:
-        return "РґР°"
+        return "да"
     if value is False:
-        return "РЅРµС‚"
-    return "РЅРµРёР·РІРµСЃС‚РЅРѕ"
+        return "нет"
+    return "неизвестно"
 
 
 async def resolve_ticket_for_admin_command(
@@ -298,7 +298,7 @@ async def build_ticket_user_info_text(
     lines = [
         f"👤 Профиль автора тикета #{ticket_id}",
         f"Telegram ID: {user_id}",
-        f"Username РІ Р‘Р”: @{db_username}" if db_username else "Username РІ Р‘Р”: РЅРµ СѓРєР°Р·Р°РЅ",
+        f"Username в БД: @{db_username}" if db_username else "Username в БД: не указан",
         f"Ник на сервере: {format_optional(game_nickname)}",
         f"Ссылка (tg://): tg://user?id={user_id}",
     ]
@@ -345,14 +345,14 @@ async def build_ticket_user_info_text(
             (
                 f"Username Telegram: @{tg_username}"
                 if tg_username
-                else "Username Telegram: РЅРµ СѓРєР°Р·Р°РЅ"
+                else "Username Telegram: не указан"
             ),
             f"Имя: {format_optional(first_name)}",
             f"Фамилия: {format_optional(last_name)}",
             f"Полное имя: {format_optional(full_name)}",
-            f"РЇР·С‹Рє РєР»РёРµРЅС‚Р°: {format_optional(language_code)}",
+            f"Язык клиента: {format_optional(language_code)}",
             f"Premium: {format_bool(is_premium)}",
-            f"Р­С‚Рѕ Р±РѕС‚: {format_bool(is_bot)}",
+            f"Это бот: {format_bool(is_bot)}",
             f"Скрытые пересылки: {format_bool(has_private_forwards)}",
             f"Bio: {format_optional(bio)}",
             (
@@ -367,7 +367,7 @@ async def build_ticket_user_info_text(
 
 
 def format_ticket_history(ticket: dict, messages: list[dict]) -> str:
-    username = ticket.get("username") or "Р±РµР· username"
+    username = ticket.get("username") or "без username"
     category = category_title(ticket.get("category"))
     status = status_title(ticket["status"])
 
@@ -380,7 +380,7 @@ def format_ticket_history(ticket: dict, messages: list[dict]) -> str:
     header = (
         f"📄 Тикет #{ticket['id']} — {status}\n"
         f"Категория: {category}\n"
-        f"РћС‚: @{username} (user_id: {ticket['user_id']})\n"
+        f"От: @{username} (user_id: {ticket['user_id']})\n"
         f"{assignee}\n"
         f"Тема: {ticket['topic']}\n"
         f"Создан: {ticket['created_at']}\n\n"
@@ -426,7 +426,7 @@ async def admin_help(message: Message, settings: Settings):
         "• /ticket <ID> — вывести историю конкретного тикета;\n"
         "• /userinfo <ID> — показать Telegram-профиль автора тикета;\n"
         "• /adminhelp — эта справка.\n\n"
-        "Р Р°Р±РѕС‚Р° СЃ С‚РµРјР°РјРё С‚РёРєРµС‚РѕРІ:\n"
+        "Работа с темами тикетов:\n"
         "• При создании тикета бот создаёт тему в этом чате;\n"
         "• В сообщении о новом тикете есть кнопка «Взять тикет в работу» — "
         "назначает исполнителя и ставит статус «в работе»;\n"
@@ -555,7 +555,7 @@ async def admin_list_open_tickets(message: Message, settings: Settings):
         thread_info = (
             f"(thread_id: {row['admin_thread_id']})"
             if row["admin_thread_id"]
-            else "(Р±РµР· С‚РµРјС‹)"
+            else "(без темы)"
         )
         assignee = row.get("assigned_admin_username")
         if assignee:
@@ -692,7 +692,7 @@ async def close_ticket_callback(
         return
 
     if callback.message.chat.id != settings.admin_chat_id:
-        await callback.answer("РќРµ С‚РѕС‚ С‡Р°С‚.", show_alert=True)
+        await callback.answer("Не тот чат.", show_alert=True)
         return
 
     data = callback.data or ""
@@ -799,7 +799,7 @@ async def take_ticket_callback(
         return
 
     if callback.message.chat.id != settings.admin_chat_id:
-        await callback.answer("РќРµ С‚РѕС‚ С‡Р°С‚.", show_alert=True)
+        await callback.answer("Не тот чат.", show_alert=True)
         return
 
     ticket_id = parse_callback_ticket_id(callback.data, "take_ticket:")
@@ -864,7 +864,7 @@ async def take_ticket_callback(
             chat_id=ticket["user_id"],
             text=(
                 f"🛠 Твой тикет #{ticket_id} взят в работу.\n"
-                f"РћС‚РІРµС‚СЃС‚РІРµРЅРЅС‹Р№: {admin_title}.\n"
+                f"Ответственный: {admin_title}.\n"
                 f"Ожидай ответа от администрации."
             ),
         )
@@ -905,7 +905,7 @@ async def handle_panel_status_action(callback: CallbackQuery, status: str):
 
     rows = await get_tickets_by_status(status, limit=20)
     if not rows:
-        await callback.message.answer("РќРµС‚ С‚РёРєРµС‚РѕРІ СЃ С‚Р°РєРёРј СЃС‚Р°С‚СѓСЃРѕРј.")
+        await callback.message.answer("Нет тикетов с таким статусом.")
         return
 
     await callback.message.answer(format_status_rows(status, rows))
@@ -987,8 +987,8 @@ async def handle_panel_archive_action(
 
     text = (
         f"🧹 Архивация закрытых тикетов завершена.\n"
-        f"Р’СЃРµРіРѕ РЅР°Р№РґРµРЅРѕ С‚РµРј: {total}\n"
-        f"РЈСЃРїРµС€РЅРѕ СѓРґР°Р»РµРЅРѕ: {success}\n"
+        f"Всего найдено тем: {total}\n"
+        f"Успешно удалено: {success}\n"
         f"Ошибок при удалении: {failed}"
     )
     await callback.message.answer(text)
@@ -1005,7 +1005,7 @@ async def admin_panel_callback(
         return
 
     if callback.message.chat.id != settings.admin_chat_id:
-        await callback.answer("РќРµ С‚РѕС‚ С‡Р°С‚.", show_alert=True)
+        await callback.answer("Не тот чат.", show_alert=True)
         return
 
     action_data = callback.data or ""
