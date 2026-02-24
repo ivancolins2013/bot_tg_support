@@ -1,4 +1,4 @@
-﻿from aiogram import Router, F, Bot
+from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.types import (
     Message,
@@ -179,7 +179,7 @@ async def create_and_publish_new_ticket(
     thread_id = forum_topic.message_thread_id
     await set_ticket_thread(ticket_id, thread_id)
 
-    username_str = f"@{username}" if username else "Р±РµР· username"
+    username_str = f"@{username}" if username else "без username"
     kb = build_ticket_admin_keyboard(ticket_id)
 
     if photo_ids:
@@ -188,7 +188,7 @@ async def create_and_publish_new_ticket(
                 f"🆕 Новый тикет #{ticket_id}\n"
                 f"Никнейм на сервере: {game_nickname}\n"
                 f"Категория: {cat_title}\n"
-                f"РћС‚: {username_str} (ID: {user_id})\n"
+                f"От: {username_str} (ID: {user_id})\n"
                 f"Тема: {topic}\n\n"
                 f"{text}"
             )
@@ -211,7 +211,7 @@ async def create_and_publish_new_ticket(
         await bot.send_message(
             chat_id=settings.admin_chat_id,
             message_thread_id=thread_id,
-            text="Р’СЃРµ РѕС‚РІРµС‚С‹ РїРѕ СЌС‚РѕРјСѓ С‚РёРєРµС‚Сѓ РїРёС€РёС‚Рµ РІ СЌС‚РѕР№ С‚РµРјРµ.",
+            text="Все ответы по этому тикету пишите в этой теме.",
             reply_markup=kb,
         )
     else:
@@ -219,10 +219,10 @@ async def create_and_publish_new_ticket(
             f"🆕 Новый тикет #{ticket_id}\n"
             f"Никнейм на сервере: {game_nickname}\n"
             f"Категория: {cat_title}\n"
-            f"РћС‚: {username_str} (ID: {user_id})\n"
+            f"От: {username_str} (ID: {user_id})\n"
             f"Тема: {topic}\n\n"
             f"{text}\n\n"
-            f"Р’СЃРµ РѕС‚РІРµС‚С‹ РїРѕ СЌС‚РѕРјСѓ С‚РёРєРµС‚Сѓ РїРёС€РёС‚Рµ РІ СЌС‚РѕР№ С‚РµРјРµ."
+            f"Все ответы по этому тикету пишите в этой теме."
         )
         await bot.send_message(
             chat_id=settings.admin_chat_id,
@@ -279,7 +279,7 @@ async def flush_new_ticket_photo_album(
     state: FSMContext = payload["state"]
 
     profile = await get_user_profile(user_id)
-    game_nickname = profile["game_nickname"] if profile else "РЅРµ СѓРєР°Р·Р°РЅ"
+    game_nickname = profile["game_nickname"] if profile else "не указан"
 
     await state.clear()
 
@@ -344,7 +344,7 @@ async def handle_new_ticket_photo_album_message(
             payload = {
                 "user_id": user.id,
                 "username": user.username if user else None,
-                "topic": data.get("topic", "Р‘РµР· С‚РµРјС‹"),
+                "topic": data.get("topic", "Без темы"),
                 "category": data.get("category", "other"),
                 "chat_id": message.chat.id,
                 "photos": [],
@@ -531,7 +531,7 @@ async def ensure_profile_or_prompt(message: Message, state: FSMContext) -> bool:
         "Сначала регистрация профиля.\n"
         "Введи никнейм, который используешь на сервере (3-24 символа).",
         reply_markup=ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="РћС‚РјРµРЅР°")]],
+            keyboard=[[KeyboardButton(text="Отмена")]],
             resize_keyboard=True,
             one_time_keyboard=True,
         ),
@@ -541,9 +541,9 @@ async def ensure_profile_or_prompt(message: Message, state: FSMContext) -> bool:
 
 async def handle_nickname_input(message: Message, state: FSMContext):
     text = (message.text or "").strip()
-    if text.lower() == "РѕС‚РјРµРЅР°":
+    if text.lower() == "отмена":
         await state.clear()
-        await message.answer("РћРє, РѕС‚РјРµРЅРµРЅРѕ.", reply_markup=main_keyboard())
+        await message.answer("Ок, отменено.", reply_markup=main_keyboard())
         return
 
     nickname = normalize_nickname(text)
@@ -551,7 +551,7 @@ async def handle_nickname_input(message: Message, state: FSMContext):
         await message.answer(
             "Никнейм должен быть от 3 до 24 символов. Попробуй еще раз.",
             reply_markup=ReplyKeyboardMarkup(
-                keyboard=[[KeyboardButton(text="РћС‚РјРµРЅР°")]],
+                keyboard=[[KeyboardButton(text="Отмена")]],
                 resize_keyboard=True,
                 one_time_keyboard=True,
             ),
@@ -623,7 +623,7 @@ async def cmd_setnick(message: Message, state: FSMContext):
     await message.answer(
         "Введи никнейм на сервере (3-24 символа).",
         reply_markup=ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="РћС‚РјРµРЅР°")]],
+            keyboard=[[KeyboardButton(text="Отмена")]],
             resize_keyboard=True,
             one_time_keyboard=True,
         ),
@@ -700,7 +700,7 @@ async def cmd_new_ticket(message: Message, state: FSMContext):
 async def ticket_category_received(message: Message, state: FSMContext):
     text = (message.text or "").strip()
 
-    # РёС‰РµРј СЃРѕРІРїР°РґРµРЅРёРµ РїРѕ РЅР°Р·РІР°РЅРёСЋ РєРЅРѕРїРєРё
+    # ищем совпадение по названию кнопки
     category_code = "other"
     for btn_text, code in CATEGORY_BUTTONS:
         if text == btn_text:
@@ -713,7 +713,7 @@ async def ticket_category_received(message: Message, state: FSMContext):
     await message.answer(
         "Укажи кратко тему обращения (например: «Проблема с донатом»).",
         reply_markup=ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="РћС‚РјРµРЅР°")]],
+            keyboard=[[KeyboardButton(text="Отмена")]],
             resize_keyboard=True,
             one_time_keyboard=True,
         ),
@@ -752,7 +752,7 @@ async def ticket_text_received(
         return
 
     data = await state.get_data()
-    topic = data.get("topic", "Р‘РµР· С‚РµРјС‹")
+    topic = data.get("topic", "Без темы")
     category = data.get("category", "other")
 
     text = (message.text or message.caption or "").strip()
@@ -773,7 +773,7 @@ async def ticket_text_received(
 
     username = message.from_user.username if message.from_user else None
     profile = await get_user_profile(message.from_user.id)
-    game_nickname = profile["game_nickname"] if profile else "РЅРµ СѓРєР°Р·Р°РЅ"
+    game_nickname = profile["game_nickname"] if profile else "не указан"
 
     ticket_id, cat_title = await create_and_publish_new_ticket(
         bot=bot,
@@ -990,7 +990,7 @@ async def user_text_router(
         await message.answer("Пустое сообщение я не могу приложить к тикету.")
         return
 
-    # 4. Р›РѕРі РІ Р‘Р”
+    # 4. Лог в БД
     await add_ticket_message(ticket_id, "user", text)
 
     # подпись для админ-чата
