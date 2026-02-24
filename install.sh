@@ -27,7 +27,7 @@ usage() {
 Использование:
   ./install.sh                 # интерактивное меню установки
   ./install.sh full            # полная установка
-  ./install.sh env             # настроить BOT_TOKEN и ADMIN_CHAT_ID в .env
+  ./install.sh env             # настроить BOT_TOKEN/ADMIN_CHAT_ID и БД в .env
   ./install.sh check           # проверка проекта и .env
   ./install.sh components      # системные компоненты (python3/venv/pip)
   ./install.sh python          # .venv + pip install -r requirements.txt
@@ -137,17 +137,47 @@ setup_bot_identity() {
 
   local current_token
   local current_chat_id
+  local current_db_host
+  local current_db_port
+  local current_db_user
+  local current_db_password
+  local current_db_name
   local token
   local chat_id
+  local db_host
+  local db_port
+  local db_user
+  local db_password
+  local db_name
 
   current_token="$(get_env_value BOT_TOKEN)"
   current_chat_id="$(get_env_value ADMIN_CHAT_ID)"
+  current_db_host="$(get_env_value DB_HOST)"
+  current_db_port="$(get_env_value DB_PORT)"
+  current_db_user="$(get_env_value DB_USER)"
+  current_db_password="$(get_env_value DB_PASSWORD)"
+  current_db_name="$(get_env_value DB_NAME)"
 
   if [[ "$current_token" == "your_bot_token_here" ]]; then
     current_token=""
   fi
   if [[ "$current_chat_id" == "-1000000000000" ]]; then
     current_chat_id=""
+  fi
+  if [[ -z "$current_db_host" ]]; then
+    current_db_host="127.0.0.1"
+  fi
+  if [[ -z "$current_db_port" ]]; then
+    current_db_port="3306"
+  fi
+  if [[ -z "$current_db_user" ]]; then
+    current_db_user="root"
+  fi
+  if [[ "$current_db_password" == "your_db_password_here" ]]; then
+    current_db_password=""
+  fi
+  if [[ -z "$current_db_name" ]]; then
+    current_db_name="vega_supportbot"
   fi
 
   echo
@@ -169,6 +199,32 @@ setup_bot_identity() {
     chat_id="$current_chat_id"
   fi
 
+  read -r -p "Введи DB_HOST (Enter = ${current_db_host}): " db_host
+  if [[ -z "$db_host" ]]; then
+    db_host="$current_db_host"
+  fi
+
+  read -r -p "Введи DB_PORT (Enter = ${current_db_port}): " db_port
+  if [[ -z "$db_port" ]]; then
+    db_port="$current_db_port"
+  fi
+
+  read -r -p "Введи DB_USER (Enter = ${current_db_user}): " db_user
+  if [[ -z "$db_user" ]]; then
+    db_user="$current_db_user"
+  fi
+
+  read -r -s -p "Введи DB_PASSWORD (Enter = оставить текущий): " db_password
+  echo
+  if [[ -z "$db_password" ]]; then
+    db_password="$current_db_password"
+  fi
+
+  read -r -p "Введи DB_NAME (Enter = ${current_db_name}): " db_name
+  if [[ -z "$db_name" ]]; then
+    db_name="$current_db_name"
+  fi
+
   if [[ -z "$token" ]]; then
     die "BOT_TOKEN не задан."
   fi
@@ -178,10 +234,27 @@ setup_bot_identity() {
   if [[ ! "$chat_id" =~ ^-?[0-9]+$ ]]; then
     die "ADMIN_CHAT_ID должен быть числом (например: -1001234567890)."
   fi
+  if [[ -z "$db_host" ]]; then
+    die "DB_HOST не задан."
+  fi
+  if [[ -z "$db_port" || ! "$db_port" =~ ^[0-9]+$ ]]; then
+    die "DB_PORT должен быть числом."
+  fi
+  if [[ -z "$db_user" ]]; then
+    die "DB_USER не задан."
+  fi
+  if [[ -z "$db_name" ]]; then
+    die "DB_NAME не задан."
+  fi
 
   set_env_value BOT_TOKEN "$token"
   set_env_value ADMIN_CHAT_ID "$chat_id"
-  log "Обновлены BOT_TOKEN и ADMIN_CHAT_ID в .env"
+  set_env_value DB_HOST "$db_host"
+  set_env_value DB_PORT "$db_port"
+  set_env_value DB_USER "$db_user"
+  set_env_value DB_PASSWORD "$db_password"
+  set_env_value DB_NAME "$db_name"
+  log "Обновлены BOT_TOKEN, ADMIN_CHAT_ID и настройки БД в .env"
 }
 
 check_env_keys() {
@@ -223,6 +296,33 @@ check_env_keys() {
   fi
   if [[ ! "$admin_chat_id" =~ ^-?[0-9]+$ ]]; then
     die "ADMIN_CHAT_ID должен быть числом. Выполни: ./install.sh env"
+  fi
+
+  local db_host
+  local db_port
+  local db_user
+  local db_password
+  local db_name
+  db_host="$(get_env_value DB_HOST)"
+  db_port="$(get_env_value DB_PORT)"
+  db_user="$(get_env_value DB_USER)"
+  db_password="$(get_env_value DB_PASSWORD)"
+  db_name="$(get_env_value DB_NAME)"
+
+  if [[ -z "$db_host" ]]; then
+    die "DB_HOST не заполнен. Выполни: ./install.sh env"
+  fi
+  if [[ -z "$db_port" || ! "$db_port" =~ ^[0-9]+$ ]]; then
+    die "DB_PORT должен быть числом. Выполни: ./install.sh env"
+  fi
+  if [[ -z "$db_user" ]]; then
+    die "DB_USER не заполнен. Выполни: ./install.sh env"
+  fi
+  if [[ "$db_password" == "your_db_password_here" ]]; then
+    die "DB_PASSWORD содержит шаблон. Выполни: ./install.sh env"
+  fi
+  if [[ -z "$db_name" ]]; then
+    die "DB_NAME не заполнен. Выполни: ./install.sh env"
   fi
 }
 
@@ -615,7 +715,7 @@ interactive_menu() {
   сервис:     $service_state
   автозапуск: $autostart_state
 
-1) Настроить .env (BOT_TOKEN + ADMIN_CHAT_ID)
+1) Настроить .env (BOT_TOKEN + ADMIN_CHAT_ID + DB_*)
 2) Проверка проекта и .env
 3) Установить системные компоненты
 4) Установить Python-зависимости (.venv)
