@@ -151,7 +151,6 @@ read_secret() {
   local __var="$1"
   local prompt="$2"
   local value=""
-  local char=""
 
   if [[ ! -t 0 ]]; then
     printf -v "$__var" ""
@@ -161,21 +160,11 @@ read_secret() {
   printf "%s" "$prompt"
   if command -v stty >/dev/null 2>&1; then
     stty -echo 2>/dev/null || true
-    while IFS= read -r -s -n1 char; do
-      if [[ "$char" == $'\n' || "$char" == $'\r' ]]; then
-        break
-      fi
-      if [[ "$char" == $'\177' || "$char" == $'\b' ]]; then
-        if [[ -n "$value" ]]; then
-          value="${value%?}"
-          printf "\b \b"
-        fi
-        continue
-      fi
-      value+="$char"
-      printf "*"
-    done
+    IFS= read -r value
     stty echo 2>/dev/null || true
+    if [[ -n "$value" ]]; then
+      printf "%s" "$(printf '%*s' "${#value}" '' | tr ' ' '*')"
+    fi
     echo
   else
     IFS= read -r -s value
