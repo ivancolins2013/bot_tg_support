@@ -3,29 +3,27 @@
 set -euo pipefail
 
 SERVICE_NAME="${SERVICE_NAME:-support-bot}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_PATH="$SCRIPT_DIR/install.sh"
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
   COLOR_GREEN=$'\033[32m'
   COLOR_RED=$'\033[31m'
+  COLOR_YELLOW=$'\033[33m'
+  COLOR_BLUE=$'\033[34m'
+  COLOR_CYAN=$'\033[36m'
+  COLOR_BOLD=$'\033[1m'
+  COLOR_DIM=$'\033[2m'
   COLOR_RESET=$'\033[0m'
 else
   COLOR_GREEN=""
   COLOR_RED=""
-  COLOR_RESET=""
-fi
-
-if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
-  COLOR_BOLD=$'\033[1m'
-  COLOR_DIM=$'\033[2m'
-  COLOR_YELLOW=$'\033[33m'
-  COLOR_BLUE=$'\033[34m'
-  COLOR_CYAN=$'\033[36m'
-else
-  COLOR_BOLD=""
-  COLOR_DIM=""
   COLOR_YELLOW=""
   COLOR_BLUE=""
   COLOR_CYAN=""
+  COLOR_BOLD=""
+  COLOR_DIM=""
+  COLOR_RESET=""
 fi
 
 usage() {
@@ -64,16 +62,11 @@ usage() {
 EOF
 }
 
-colorize_state() {
-  local state="${1:-}"
-  case "$state" in
-    "запущен"|"включено")
-      printf "%b%s%b" "$COLOR_GREEN" "$state" "$COLOR_RESET"
-      ;;
-    *)
-      printf "%b%s%b" "$COLOR_RED" "$state" "$COLOR_RESET"
-      ;;
-  esac
+require_systemctl() {
+  if ! command -v systemctl >/dev/null 2>&1; then
+    printf "%bОшибка: systemctl недоступен на этом сервере.%b\n" "$COLOR_RED" "$COLOR_RESET"
+    exit 1
+  fi
 }
 
 autostart_state_text() {
@@ -92,70 +85,34 @@ service_state_text() {
   fi
 }
 
-interactive_menu() {
-  while true; do
-    local service_state
-    local service_state_colored
-    local autostart_state
-    local autostart_state_colored
-    service_state="$(service_state_text)"
-    service_state_colored="$(colorize_state "$service_state")"
-    autostart_state="$(autostart_state_text)"
-    autostart_state_colored="$(colorize_state "$autostart_state")"
-
-    cat <<EOF
-
-===============================
-Управление ботом (systemd)
-===============================
-1) Запустить бота (сейчас: ${service_state_colored})
-2) Остановить бота
-3) Перезапустить бота
-4) Статус бота
-5) Логи бота
-6) Включить автозапуск (сейчас: ${autostart_state_colored})
-7) Выключить автозапуск
-8) Справка
-9) Консоль в реальном времени
-10) Открыть install.sh
-0) Выход
-EOF
-
-    read -r -p "Выбери пункт [0-10]: " choice
-    choice="${choice//$'\r'/}"
-    choice="${choice#"${choice%%[![:space:]]*}"}"
-    choice="${choice%"${choice##*[![:space:]]}"}"
-    if [[ -z "$choice" ]]; then
-      continue
-    fi
-
-    case "$choice" in
-      1) start_service ;;
-      2) stop_service ;;
-      3) restart_service ;;
-      4) status_service ;;
-      5)
-        read -r -p "Сколько строк логов показать? [100]: " lines
-        show_logs_once_and_back "${lines:-100}"
-        ;;
-      6) enable_service ;;
-      7) disable_service ;;
-      8) usage ;;
-      9) live_console_and_back ;;
-      10) open_install_script ;;
-      0) exit 0 ;;
-      *)
-        echo "Неверный выбор. Введи число от 0 до 10."
-        ;;
-    esac
-  done
+colorize_state() {
+  local state="${1:-}"
+  case "$state" in
+    "запущен"|"включен"|"включено"|"готово"|"установлен")
+      printf "%b%s%b" "$COLOR_GREEN" "$state" "$COLOR_RESET"
+      ;;
+    "остановлен"|"выключен"|"выключено"|"ошибки"|"не готово"|"не установлен"|"нет systemd")
+      printf "%b%s%b" "$COLOR_RED" "$state" "$COLOR_RESET"
+      ;;
+    *)
+      printf "%b%s%b" "$COLOR_YELLOW" "$state" "$COLOR_RESET"
+      ;;
+  esac
 }
 
-require_systemctl() {
-  if ! command -v systemctl >/dev/null 2>&1; then
-    echo "Ошибка: systemctl недоступен на этом сервере."
-    exit 1
-  fi
+menu_header() {
+  local title="$1"
+  local line="==============================="
+  echo
+  printf "%b%s%b\n" "${COLOR_CYAN}${COLOR_BOLD}" "$line" "$COLOR_RESET"
+  printf "%b%s%b\n" "${COLOR_CYAN}${COLOR_BOLD}" "$title" "$COLOR_RESET"
+  printf "%b%s%b\n" "${COLOR_CYAN}${COLOR_BOLD}" "$line" "$COLOR_RESET"
+}
+
+menu_item() {
+  local number="$1"
+  local text="$2"
+  printf "%b%s)%b %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$number" "$COLOR_RESET" "$text"
 }
 
 start_service() {
@@ -183,102 +140,6 @@ status_service() {
 logs_service() {
   local lines="${1:-100}"
   journalctl -u "$SERVICE_NAME" -n "$lines" -f || true
-}
-
-show_logs_once_and_back() {
-  local lines="${1:-100}"
-  journalctl -u "$SERVICE_NAME" -n "$lines" --no-pager || true
-  echo
-  read -r -p "Нажми Enter, чтобы вернуться в меню..." _
-}
-
-live_console_and_back() {
-  local logs_pid
-  local interrupted=0
-
-  echo
-  echo "Открыт поток логов. Нажми Enter для возврата в меню (или Ctrl+C)."
-
-  journalctl -u "$SERVICE_NAME" -f --no-pager &
-  logs_pid=$!
-
-  trap 'interrupted=1' INT
-  while true; do
-    if IFS= read -r -t 0.2 _; then
-      break
-    fi
-    if [[ "$interrupted" -eq 1 ]]; then
-      break
-    fi
-    if ! kill -0 "$logs_pid" 2>/dev/null; then
-      break
-    fi
-  done
-  trap - INT
-
-  kill "$logs_pid" 2>/dev/null || true
-  wait "$logs_pid" 2>/dev/null || true
-}
-
-enable_service() {
-  systemctl enable "$SERVICE_NAME"
-  systemctl is-enabled "$SERVICE_NAME"
-}
-
-disable_service() {
-  systemctl disable "$SERVICE_NAME"
-  systemctl is-enabled "$SERVICE_NAME" || true
-}
-
-open_install_script() {
-  local install_path
-  install_path="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/install.sh"
-
-  if [[ ! -f "$install_path" ]]; then
-    echo "install.sh не найден рядом с manage.sh."
-    return
-  fi
-
-  chmod +x "$install_path"
-  echo "Открываю меню установщика: $install_path"
-  bash "$install_path"
-}
-
-menu_header() {
-  local title="$1"
-  local line="==============================="
-  echo
-  printf "%b%s%b\n" "${COLOR_CYAN}${COLOR_BOLD}" "$line" "$COLOR_RESET"
-  printf "%b%s%b\n" "${COLOR_CYAN}${COLOR_BOLD}" "$title" "$COLOR_RESET"
-  printf "%b%s%b\n" "${COLOR_CYAN}${COLOR_BOLD}" "$line" "$COLOR_RESET"
-}
-
-menu_item() {
-  local number="$1"
-  local text="$2"
-  printf "%b%s)%b %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$number" "$COLOR_RESET" "$text"
-}
-
-colorize_state() {
-  local state="${1:-}"
-  case "$state" in
-    "запущен"|"включен"|"включено"|"готово"|"установлен")
-      printf "%b%s%b" "$COLOR_GREEN" "$state" "$COLOR_RESET"
-      ;;
-    "остановлен"|"выключен"|"выключено"|"ошибки"|"не готово"|"не установлен"|"нет systemd")
-      printf "%b%s%b" "$COLOR_RED" "$state" "$COLOR_RESET"
-      ;;
-    *)
-      printf "%b%s%b" "$COLOR_YELLOW" "$state" "$COLOR_RESET"
-      ;;
-  esac
-}
-
-require_systemctl() {
-  if ! command -v systemctl >/dev/null 2>&1; then
-    printf "%bОшибка: systemctl недоступен на этом сервере.%b\n" "$COLOR_RED" "$COLOR_RESET"
-    exit 1
-  fi
 }
 
 show_logs_once_and_back() {
@@ -316,6 +177,27 @@ live_console_and_back() {
 
   kill "$logs_pid" 2>/dev/null || true
   wait "$logs_pid" 2>/dev/null || true
+}
+
+enable_service() {
+  systemctl enable "$SERVICE_NAME"
+  systemctl is-enabled "$SERVICE_NAME"
+}
+
+disable_service() {
+  systemctl disable "$SERVICE_NAME"
+  systemctl is-enabled "$SERVICE_NAME" || true
+}
+
+open_install_script() {
+  if [[ ! -f "$INSTALL_PATH" ]]; then
+    echo "install.sh не найден рядом с manage.sh."
+    return
+  fi
+
+  chmod +x "$INSTALL_PATH"
+  echo "Открываю меню установщика: $INSTALL_PATH"
+  bash "$INSTALL_PATH"
 }
 
 interactive_menu() {

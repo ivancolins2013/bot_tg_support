@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -89,17 +89,29 @@ while true; do
 
   case "${action:-}" in
     1)
-      if [[ -x "$workdir/manage.sh" ]]; then
-        (cd "$workdir" && SERVICE_NAME="$service" bash ./manage.sh)
+      root_dir="$(dirname "$workdir")"
+      manage_path=""
+
+      if [[ -f "$root_dir/scripts/manage.sh" ]]; then
+        manage_path="$root_dir/scripts/manage.sh"
       elif [[ -f "$workdir/manage.sh" ]]; then
+        manage_path="$workdir/manage.sh"
+      fi
+
+      if [[ -z "$manage_path" ]]; then
+        echo "manage.sh не найден (ни в $root_dir/scripts, ни в $workdir)."
+        continue
+      fi
+
+      if [[ -x "$manage_path" ]]; then
+        (cd "$(dirname "$manage_path")" && SERVICE_NAME="$service" bash "$manage_path")
+      else
         echo "manage.sh найден, но без прав на запуск."
         read -r -p "Сделать исполняемым и открыть? [y/N]: " ans
         if [[ "${ans,,}" == "y" ]]; then
-          chmod +x "$workdir/manage.sh"
-          (cd "$workdir" && SERVICE_NAME="$service" bash ./manage.sh)
+          chmod +x "$manage_path"
+          (cd "$(dirname "$manage_path")" && SERVICE_NAME="$service" bash "$manage_path")
         fi
-      else
-        echo "manage.sh не найден в $workdir"
       fi
       ;;
     2)

@@ -3,10 +3,22 @@
 set -euo pipefail
 
 SERVICE_NAME="${SERVICE_NAME:-support-bot}"
-APP_DIR="${APP_DIR:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)}"
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -z "${ROOT_DIR:-}" ]]; then
+  if [[ -d "$SCRIPT_DIR/bot" ]]; then
+    ROOT_DIR="$SCRIPT_DIR"
+  elif [[ -d "$SCRIPT_DIR/../bot" ]]; then
+    ROOT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+  else
+    ROOT_DIR="$SCRIPT_DIR"
+  fi
+fi
+
+BOT_DIR="${BOT_DIR:-$ROOT_DIR/bot}"
 RUN_USER="${RUN_USER:-$(id -un)}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
-VENV_DIR="${VENV_DIR:-$APP_DIR/.venv}"
+VENV_DIR="${VENV_DIR:-$ROOT_DIR/.venv}"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}.service"
 MANAGE_SH_URL="${MANAGE_SH_URL:-}"
 MANAGE_AUTOOPEN_START="# >>> support-bot manage auto-open >>>"
@@ -34,17 +46,17 @@ else
 fi
 
 log() {
-  printf "[install] %s\n" "$1"
+  printf "%b[install]%b %s\n" "${COLOR_CYAN}${COLOR_BOLD}" "$COLOR_RESET" "$1"
 }
 
 die() {
-  printf "[install] ERROR: %s\n" "$1" >&2
+  printf "%b[install] ERROR:%b %s\n" "${COLOR_RED}${COLOR_BOLD}" "$COLOR_RESET" "$1" >&2
   exit 1
 }
 
 usage() {
   cat <<EOF
-?????????????:
+Использование:
   ./install.sh                 # интерактивное меню установки
   ./install.sh full            # полная установка
   ./install.sh env             # настроить BOT_TOKEN/ADMIN_CHAT_ID и БД в .env
@@ -59,14 +71,16 @@ usage() {
   ./install.sh purge           # полностью удалить бота с VDS
 
 Русские алиасы:
-  полная, окружение, проверка, компоненты, питон, сервис, управление, открыть, авто-вкл, авто-выкл, удалить, помощь
+  полная, окружение, проверка, компоненты, питон, сервис, управление,
+  открыть, авто-вкл, авто-выкл, удалить, помощь
 
 Примечание:
   Запуск/остановка/логи бота выполняются через manage.sh.
 
 Переменные окружения:
   SERVICE_NAME=$SERVICE_NAME
-  APP_DIR=$APP_DIR
+  ROOT_DIR=$ROOT_DIR
+  BOT_DIR=$BOT_DIR
   RUN_USER=$RUN_USER
   PYTHON_BIN=$PYTHON_BIN
   VENV_DIR=$VENV_DIR
@@ -95,23 +109,32 @@ require_cmd() {
   fi
 }
 
+check_layout() {
+  if [[ ! -d "$BOT_DIR" ]]; then
+    die "Не найден каталог бота: $BOT_DIR"
+  fi
+}
+
 check_project_files() {
-  [[ -f "$APP_DIR/bot.py" ]] || die "Не найден $APP_DIR/bot.py"
-  [[ -f "$APP_DIR/requirements.txt" ]] || die "Не найден $APP_DIR/requirements.txt"
+  check_layout
+  [[ -f "$BOT_DIR/bot.py" ]] || die "Не найден $BOT_DIR/bot.py"
+  [[ -f "$BOT_DIR/requirements.txt" ]] || die "Не найден $BOT_DIR/requirements.txt"
 }
 
 ensure_env_file_exists() {
-  if [[ -f "$APP_DIR/.env" ]]; then
+  check_layout
+
+  if [[ -f "$BOT_DIR/.env" ]]; then
     return
   fi
 
-  if [[ -f "$APP_DIR/.env.example" ]]; then
-    cp "$APP_DIR/.env.example" "$APP_DIR/.env"
+  if [[ -f "$BOT_DIR/.env.example" ]]; then
+    cp "$BOT_DIR/.env.example" "$BOT_DIR/.env"
     log "Создан .env из .env.example"
     return
   fi
 
-  cat >"$APP_DIR/.env" <<'EOF'
+  cat >"$BOT_DIR/.env" <<'EOF'
 BOT_TOKEN=
 ADMIN_CHAT_ID=
 PROJECT_NAME=DETROIT
@@ -127,11 +150,11 @@ EOF
 
 get_env_value() {
   local key="$1"
-  if [[ ! -f "$APP_DIR/.env" ]]; then
+  if [[ ! -f "$BOT_DIR/.env" ]]; then
     return
   fi
   local line
-  line="$(grep -E "^${key}=" "$APP_DIR/.env" | head -n 1 || true)"
+  line="$(grep -E "^${key}=" "$BOT_DIR/.env" | head -n 1 || true)"
   printf "%s" "${line#*=}"
 }
 
@@ -141,10 +164,10 @@ set_env_value() {
   local escaped
 
   escaped="$(printf "%s" "$value" | sed -e 's/[&|\\]/\\&/g')"
-  if grep -Eq "^${key}=" "$APP_DIR/.env"; then
-    sed -i "s|^${key}=.*|${key}=${escaped}|" "$APP_DIR/.env"
+  if grep -Eq "^${key}=" "$BOT_DIR/.env"; then
+    sed -i "s|^${key}=.*|${key}=${escaped}|" "$BOT_DIR/.env"
   else
-    printf "%s=%s\n" "$key" "$value" >>"$APP_DIR/.env"
+    printf "%s=%s\n" "$key" "$value" >>"$BOT_DIR/.env"
   fi
 }
 
@@ -337,7 +360,7 @@ check_env_keys() {
   local missing=()
   local key=""
   for key in "${required_keys[@]}"; do
-    if ! grep -Eq "^${key}=" "$APP_DIR/.env"; then
+    if ! grep -Eq "^${key}=" "$BOT_DIR/.env"; then
       missing+=("$key")
     fi
   done
@@ -395,7 +418,7 @@ check_env_keys() {
 }
 
 project_ready_text() {
-  if [[ -f "$APP_DIR/bot.py" && -f "$APP_DIR/requirements.txt" && -f "$APP_DIR/.env" ]]; then
+  if [[ -f "$BOT_DIR/bot.py" && -f "$BOT_DIR/requirements.txt" && -f "$BOT_DIR/.env" ]]; then
     echo "готово"
   else
     echo "не готово"
@@ -407,7 +430,7 @@ env_ready_text() {
   required_keys=(BOT_TOKEN ADMIN_CHAT_ID PROJECT_NAME DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME)
   local key=""
   for key in "${required_keys[@]}"; do
-    if ! grep -Eq "^${key}=" "$APP_DIR/.env" 2>/dev/null; then
+    if ! grep -Eq "^${key}=" "$BOT_DIR/.env" 2>/dev/null; then
       echo "ошибки"
       return
     fi
@@ -448,9 +471,9 @@ venv_ready_text() {
 }
 
 manage_ready_text() {
-  if [[ -x "$APP_DIR/manage.sh" ]]; then
+  if [[ -x "$SCRIPT_DIR/manage.sh" ]]; then
     echo "установлен"
-  elif [[ -f "$APP_DIR/manage.sh" ]]; then
+  elif [[ -f "$SCRIPT_DIR/manage.sh" ]]; then
     echo "есть (без +x)"
   else
     echo "не установлен"
@@ -483,7 +506,7 @@ remove_manage_autostart_block() {
 }
 
 enable_manage_autostart() {
-  local manage_path="$APP_DIR/manage.sh"
+  local manage_path="$SCRIPT_DIR/manage.sh"
   local bashrc="$HOME/.bashrc"
 
   if [[ ! -f "$manage_path" ]]; then
@@ -536,9 +559,9 @@ purge_bot() {
   detect_sudo
   require_cmd systemctl
 
-  local app_dir="$APP_DIR"
+  local app_dir="$ROOT_DIR"
   if [[ -z "$app_dir" || "$app_dir" == "/" || "$app_dir" == "/root" ]]; then
-    die "Небезопасный APP_DIR для удаления: '$app_dir'"
+    die "Небезопасный ROOT_DIR для удаления: '$app_dir'"
   fi
 
   if [[ ! -t 0 ]]; then
@@ -546,7 +569,7 @@ purge_bot() {
   fi
 
   echo
-  echo "????????: ????? ????????? ?????? ??? ? VDS."
+  echo "ВНИМАНИЕ: будет удален бот с VDS."
   echo "Сервис: $SERVICE_NAME"
   echo "Папка проекта: $app_dir"
   echo "Системный сервис-файл: $SERVICE_PATH"
@@ -560,7 +583,7 @@ purge_bot() {
   disable_manage_autostart || true
   ${SUDO_CMD} systemctl stop "$SERVICE_NAME" || true
   ${SUDO_CMD} systemctl disable "$SERVICE_NAME" || true
-  pkill -f "$app_dir/bot.py" || true
+  pkill -f "$BOT_DIR/bot.py" || true
 
   ${SUDO_CMD} rm -f "$SERVICE_PATH"
   ${SUDO_CMD} systemctl daemon-reload || true
@@ -633,20 +656,20 @@ install_python_deps() {
   "$VENV_DIR/bin/python" -m pip install --upgrade pip
 
   log "Ставлю зависимости из requirements.txt..."
-  "$VENV_DIR/bin/pip" install -r "$APP_DIR/requirements.txt"
+  "$VENV_DIR/bin/pip" install -r "$BOT_DIR/requirements.txt"
 }
 
 prepare_project_files() {
-  mkdir -p "$APP_DIR/logs"
-  if [[ -f "$APP_DIR/manage.sh" ]]; then
-    chmod +x "$APP_DIR/manage.sh"
+  mkdir -p "$BOT_DIR/logs"
+  if [[ -f "$SCRIPT_DIR/manage.sh" ]]; then
+    chmod +x "$SCRIPT_DIR/manage.sh"
   fi
-  chmod +x "$APP_DIR/install.sh"
+  chmod +x "$SCRIPT_DIR/install.sh" || true
 }
 
 download_manage_script() {
   local url="${1:-$MANAGE_SH_URL}"
-  local target="$APP_DIR/manage.sh"
+  local target="$SCRIPT_DIR/manage.sh"
 
   if [[ -z "$url" && -t 0 ]]; then
     read -r -p "Вставь прямую ссылку на manage.sh (Enter = пропустить): " url
@@ -677,6 +700,10 @@ ask_manage_script_install() {
     return 0
   fi
 
+  if [[ -f "$SCRIPT_DIR/manage.sh" ]]; then
+    return 0
+  fi
+
   read -r -p "Скачать manage.sh для управления ботом? [y/N]: " answer
   case "${answer,,}" in
     y|yes|д|да)
@@ -689,7 +716,7 @@ ask_manage_script_install() {
 }
 
 open_manage_script() {
-  local manage_path="$APP_DIR/manage.sh"
+  local manage_path="$SCRIPT_DIR/manage.sh"
   if [[ ! -f "$manage_path" ]]; then
     echo "manage.sh не найден. Сначала скачай/добавь его (пункт 6)."
     return
@@ -717,8 +744,8 @@ After=network.target
 [Service]
 Type=simple
 User=$RUN_USER
-WorkingDirectory=$APP_DIR
-ExecStart=$VENV_DIR/bin/python $APP_DIR/bot.py
+WorkingDirectory=$BOT_DIR
+ExecStart=$VENV_DIR/bin/python $BOT_DIR/bot.py
 Restart=always
 RestartSec=3
 Environment=PYTHONUNBUFFERED=1
@@ -757,73 +784,6 @@ full_install() {
   log "Готово: полная установка завершена."
 }
 
-interactive_menu() {
-  while true; do
-    local project_state
-    local env_state
-    local venv_state
-    local manage_state
-    local manage_autostart_state
-    local service_state
-    local autostart_state
-
-    project_state="$(project_ready_text)"
-    env_state="$(env_ready_text)"
-    venv_state="$(venv_ready_text)"
-    manage_state="$(manage_ready_text)"
-    manage_autostart_state="$(manage_autostart_text)"
-    service_state="$(service_state_text)"
-    autostart_state="$(autostart_state_text)"
-
-    cat <<EOF
-
-==========================================
-Установка и подготовка бота
-==========================================
-Состояние:
-  проект:     $project_state
-  .env:       $env_state
-  .venv:      $venv_state
-  manage.sh:  $manage_state
-  авто-manage: $manage_autostart_state
-  сервис:     $service_state
-  автозапуск: $autostart_state
-
-1) Настроить .env (BOT_TOKEN + ADMIN_CHAT_ID + DB_*)
-2) Проверка проекта и .env
-3) Установить системные компоненты
-4) Установить Python-зависимости (.venv)
-5) Создать/обновить systemd-сервис
-6) Скачать manage.sh (скрипт управления)
-7) Полная установка (все шаги)
-8) Открыть manage.sh (управление ботом)
-9) Включить авто-открытие manage.sh при SSH-входе
-10) Выключить авто-открытие manage.sh
-11) Полностью удалить бота с VDS
-0) Выход
-EOF
-
-    read -r -p "Выбери пункт [0-11]: " choice
-    case "$choice" in
-      1) full_install ;;
-      2) check_step ;;
-      3) install_system_packages ;;
-      4) install_python_deps; prepare_project_files ;;
-      5) write_systemd_service ;;
-      6) download_manage_script ;;
-      7) setup_bot_identity ;;
-      8) open_manage_script ;;
-      9) enable_manage_autostart ;;
-      10) disable_manage_autostart ;;
-      11) purge_bot ;;
-      0) exit 0 ;;
-      *)
-        echo "Неверный выбор. Введи число от 0 до 11."
-        ;;
-    esac
-  done
-}
-
 menu_header() {
   local title="$1"
   local line="=========================================="
@@ -852,15 +812,6 @@ colorize_state() {
       printf "%b%s%b" "$COLOR_YELLOW" "$state" "$COLOR_RESET"
       ;;
   esac
-}
-
-log() {
-  printf "%b[install]%b %s\n" "${COLOR_CYAN}${COLOR_BOLD}" "$COLOR_RESET" "$1"
-}
-
-die() {
-  printf "%b[install] ERROR:%b %s\n" "${COLOR_RED}${COLOR_BOLD}" "$COLOR_RESET" "$1" >&2
-  exit 1
 }
 
 interactive_menu() {
