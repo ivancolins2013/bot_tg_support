@@ -330,7 +330,7 @@ interactive_menu() {
     autostart_state="$(autostart_state_text)"
     autostart_state_colored="$(colorize_state "$autostart_state")"
 
-    menu_header "Управление ботом (systemd)"
+    menu_header "Управление ботом: ${SERVICE_NAME} (systemd)"
     menu_item "1" "Запустить бота (сейчас: ${service_state_colored})"
     menu_item "2" "Остановить бота"
     menu_item "3" "Перезапустить бота"
