@@ -23,6 +23,8 @@ SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}.service"
 MANAGE_SH_URL="${MANAGE_SH_URL:-}"
 MANAGE_AUTOOPEN_START="# >>> support-bot manage auto-open >>>"
 MANAGE_AUTOOPEN_END="# <<< support-bot manage auto-open <<<"
+LIST_BOTS_AUTOOPEN_START="# >>> support-bot list-bots auto-open >>>"
+LIST_BOTS_AUTOOPEN_END="# <<< support-bot list-bots auto-open <<<"
 SUDO_CMD=""
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -555,6 +557,68 @@ ask_manage_autostart_enable() {
   esac
 }
 
+remove_list_bots_autostart_block() {
+  local bashrc="$HOME/.bashrc"
+  local tmp=""
+  if [[ ! -f "$bashrc" ]]; then
+    return
+  fi
+
+  tmp="$(mktemp)"
+  awk -v start="$LIST_BOTS_AUTOOPEN_START" -v end="$LIST_BOTS_AUTOOPEN_END" '
+    $0 == start {skip=1; next}
+    $0 == end {skip=0; next}
+    !skip {print}
+  ' "$bashrc" >"$tmp"
+  mv "$tmp" "$bashrc"
+}
+
+enable_list_bots_autostart() {
+  local list_bots_path="$SCRIPT_DIR/list_bots.sh"
+  local bashrc="$HOME/.bashrc"
+
+  if [[ ! -f "$list_bots_path" ]]; then
+    log "list_bots.sh not found near install.sh; list auto-open was not enabled."
+    return
+  fi
+
+  chmod +x "$list_bots_path"
+  touch "$bashrc"
+  remove_manage_autostart_block
+  remove_list_bots_autostart_block
+
+  cat >>"$bashrc" <<EOF
+
+$LIST_BOTS_AUTOOPEN_START
+if [[ \$- == *i* ]] && [[ -n "\${SSH_TTY:-}" ]] && [[ -z "\${LIST_BOTS_SH_OPENED:-}" ]]; then
+  export LIST_BOTS_SH_OPENED=1
+  if [[ -x "$list_bots_path" ]]; then
+    "$list_bots_path"
+  fi
+fi
+$LIST_BOTS_AUTOOPEN_END
+EOF
+
+  log "List auto-open enabled in $bashrc"
+}
+
+ask_list_bots_autostart_enable() {
+  local answer=""
+  if [[ ! -t 0 ]]; then
+    return 0
+  fi
+
+  read -r -p "Enable auto-open of list_bots.sh at SSH login? (recommended if you have many bots) [y/N]: " answer
+  case "${answer,,}" in
+    y|yes|Рґ|РґР°)
+      enable_list_bots_autostart
+      ;;
+    *)
+      log "List auto-open was not enabled."
+      ;;
+  esac
+}
+
 purge_bot() {
   detect_sudo
   require_cmd systemctl
@@ -781,6 +845,7 @@ full_install() {
   start_service
   ask_manage_script_install
   ask_manage_autostart_enable
+  ask_list_bots_autostart_enable
   log "Готово: полная установка завершена."
 }
 
