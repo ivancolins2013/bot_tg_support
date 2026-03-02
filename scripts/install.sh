@@ -68,6 +68,7 @@ usage() {
   ./install.sh service         # СЃРѕР·РґР°С‚СЊ/РѕР±РЅРѕРІРёС‚СЊ systemd-СЃРµСЂРІРёСЃ
   ./install.sh manage [URL]    # СЃРєР°С‡Р°С‚СЊ manage.sh (СЃРєСЂРёРїС‚ СѓРїСЂР°РІР»РµРЅРёСЏ)
   ./install.sh open            # РѕС‚РєСЂС‹С‚СЊ manage.sh (РјРµРЅСЋ СѓРїСЂР°РІР»РµРЅРёСЏ)
+  ./install.sh bots            # open list_bots.sh (bots switcher)
   ./install.sh auto-on         # РІРєР»СЋС‡РёС‚СЊ Р°РІС‚Рѕ-РѕС‚РєСЂС‹С‚РёРµ manage.sh РїСЂРё SSH-РІС…РѕРґРµ
   ./install.sh auto-off        # РІС‹РєР»СЋС‡РёС‚СЊ Р°РІС‚Рѕ-РѕС‚РєСЂС‹С‚РёРµ manage.sh РїСЂРё SSH-РІС…РѕРґРµ
   ./install.sh purge           # РїРѕР»РЅРѕСЃС‚СЊСЋ СѓРґР°Р»РёС‚СЊ Р±РѕС‚Р° СЃ VDS
@@ -791,6 +792,18 @@ open_manage_script() {
   bash "$manage_path"
 }
 
+open_list_bots_script() {
+  local list_bots_path="$SCRIPT_DIR/list_bots.sh"
+  if [[ ! -f "$list_bots_path" ]]; then
+    echo "list_bots.sh not found рядом с install.sh."
+    return
+  fi
+
+  chmod +x "$list_bots_path"
+  log "Opening bots switcher: $list_bots_path"
+  bash "$list_bots_path"
+}
+
 write_systemd_service() {
   detect_sudo
   require_cmd systemctl
@@ -919,9 +932,10 @@ interactive_menu() {
     menu_item "9" "Р’РєР»СЋС‡РёС‚СЊ Р°РІС‚Рѕ-РѕС‚РєСЂС‹С‚РёРµ manage.sh РїСЂРё SSH-РІС…РѕРґРµ"
     menu_item "10" "Р’С‹РєР»СЋС‡РёС‚СЊ Р°РІС‚Рѕ-РѕС‚РєСЂС‹С‚РёРµ manage.sh"
     menu_item "11" "РџРѕР»РЅРѕСЃС‚СЊСЋ СѓРґР°Р»РёС‚СЊ Р±РѕС‚Р° СЃ VDS"
+    menu_item "12" "Открыть list_bots.sh (выбор бота)"
     menu_item "0" "Р’С‹С…РѕРґ"
 
-    printf "%bР’С‹Р±РµСЂРё РїСѓРЅРєС‚ [0-11]: %b" "$COLOR_YELLOW" "$COLOR_RESET"
+    printf "%bР’С‹Р±РµСЂРё РїСѓРЅРєС‚ [0-12]: %b" "$COLOR_YELLOW" "$COLOR_RESET"
     read -r choice
     choice="${choice//$'\r'/}"
     choice="${choice#"${choice%%[![:space:]]*}"}"
@@ -942,9 +956,10 @@ interactive_menu() {
       9) enable_manage_autostart ;;
       10) disable_manage_autostart ;;
       11) purge_bot ;;
+      12) open_list_bots_script ;;
       0) exit 0 ;;
       *)
-        printf "%bРќРµРІРµСЂРЅС‹Р№ РІС‹Р±РѕСЂ. Р’РІРµРґРё С‡РёСЃР»Рѕ РѕС‚ 0 РґРѕ 11.%b\n" "$COLOR_RED" "$COLOR_RESET"
+        printf "%bРќРµРІРµСЂРЅС‹Р№ РІС‹Р±РѕСЂ. Р’РІРµРґРё С‡РёСЃР»Рѕ РѕС‚ 0 РґРѕ 12.%b\n" "$COLOR_RED" "$COLOR_RESET"
         ;;
     esac
   done
@@ -987,6 +1002,9 @@ main() {
       ;;
     open|run-manage|РѕС‚РєСЂС‹С‚СЊ)
       open_manage_script
+      ;;
+    bots|list-bots|bot-list)
+      open_list_bots_script
       ;;
     auto-on|automanage-on|Р°РІС‚Рѕ-РІРєР»)
       enable_manage_autostart
