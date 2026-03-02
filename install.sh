@@ -147,6 +147,30 @@ set_env_value() {
   fi
 }
 
+read_secret() {
+  local __var="$1"
+  local prompt="$2"
+  local value=""
+
+  if [[ ! -t 0 ]]; then
+    printf -v "$__var" ""
+    return
+  fi
+
+  printf "%s" "$prompt"
+  if command -v stty >/dev/null 2>&1; then
+    stty -echo 2>/dev/null || true
+    IFS= read -r value
+    stty echo 2>/dev/null || true
+    echo
+  else
+    IFS= read -r -s value
+    echo
+  fi
+
+  printf -v "$__var" "%s" "$value"
+}
+
 setup_bot_identity() {
   ensure_env_file_exists
 
@@ -234,8 +258,7 @@ setup_bot_identity() {
     db_user="$current_db_user"
   fi
 
-  read -r -s -p "Введи DB_PASSWORD (Enter = оставить текущий): " db_password
-  echo
+  read_secret db_password "Введи DB_PASSWORD (Enter = оставить текущий): "
   if [[ -z "$db_password" ]]; then
     db_password="$current_db_password"
   fi
