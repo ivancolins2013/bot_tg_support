@@ -10,6 +10,7 @@ load_dotenv()
 class Settings:
     bot_token: str
     admin_chat_id: int
+    project_name: str
     db_host: str
     db_port: int
     db_user: str
@@ -21,6 +22,7 @@ def load_settings() -> Settings:
     return Settings(
         bot_token=os.getenv("BOT_TOKEN", ""),
         admin_chat_id=int(os.getenv("ADMIN_CHAT_ID", "0")),
+        project_name=os.getenv("PROJECT_NAME", "DETROIT"),
         db_host=os.getenv("DB_HOST", "127.0.0.1"),
         db_port=int(os.getenv("DB_PORT", "3306")),
         db_user=os.getenv("DB_USER", "root"),

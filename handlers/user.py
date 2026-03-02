@@ -578,7 +578,7 @@ async def handle_nickname_input(message: Message, state: FSMContext):
 
 
 @user_router.message(CommandStart(), F.chat.type == "private")
-async def cmd_start(message: Message, state: FSMContext):
+async def cmd_start(message: Message, state: FSMContext, settings: Settings):
     """
     Старт бота для игрока.
     Показываем приветствие и основное меню.
@@ -586,7 +586,7 @@ async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
 
     text = (
-        "Привет! Я бот поддержки проекта DETROIT.\n\n"
+        f"Привет! Я бот поддержки проекта {settings.project_name}.\n\n"
         "Через меня ты можешь:\n"
         "• 📩 создать тикет и описать свою проблему;\n"
         "• 📜 посмотреть список своих тикетов и их статус;\n"

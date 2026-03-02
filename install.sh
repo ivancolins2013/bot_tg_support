@@ -114,6 +114,7 @@ ensure_env_file_exists() {
   cat >"$APP_DIR/.env" <<'EOF'
 BOT_TOKEN=
 ADMIN_CHAT_ID=
+PROJECT_NAME=DETROIT
 
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -184,6 +185,7 @@ setup_bot_identity() {
 
   local current_token
   local current_chat_id
+  local current_project_name
   local current_db_host
   local current_db_port
   local current_db_user
@@ -191,6 +193,7 @@ setup_bot_identity() {
   local current_db_name
   local token
   local chat_id
+  local project_name
   local db_host
   local db_port
   local db_user
@@ -199,6 +202,7 @@ setup_bot_identity() {
 
   current_token="$(get_env_value BOT_TOKEN)"
   current_chat_id="$(get_env_value ADMIN_CHAT_ID)"
+  current_project_name="$(get_env_value PROJECT_NAME)"
   current_db_host="$(get_env_value DB_HOST)"
   current_db_port="$(get_env_value DB_PORT)"
   current_db_user="$(get_env_value DB_USER)"
@@ -210,6 +214,9 @@ setup_bot_identity() {
   fi
   if [[ "$current_chat_id" == "-1000000000000" ]]; then
     current_chat_id=""
+  fi
+  if [[ -z "$current_project_name" ]]; then
+    current_project_name="DETROIT"
   fi
   if [[ -z "$current_db_host" ]]; then
     current_db_host="127.0.0.1"
@@ -246,6 +253,11 @@ setup_bot_identity() {
     chat_id="$current_chat_id"
   fi
 
+  read -r -p "Введи PROJECT_NAME (Enter = ${current_project_name}): " project_name
+  if [[ -z "$project_name" ]]; then
+    project_name="$current_project_name"
+  fi
+
   read -r -p "Введи DB_HOST (Enter = ${current_db_host}): " db_host
   if [[ -z "$db_host" ]]; then
     db_host="$current_db_host"
@@ -280,6 +292,9 @@ setup_bot_identity() {
   if [[ ! "$chat_id" =~ ^-?[0-9]+$ ]]; then
     die "ADMIN_CHAT_ID должен быть числом (например: -1001234567890)."
   fi
+  if [[ -z "$project_name" ]]; then
+    die "PROJECT_NAME не задан."
+  fi
   if [[ -z "$db_host" ]]; then
     die "DB_HOST не задан."
   fi
@@ -295,6 +310,7 @@ setup_bot_identity() {
 
   set_env_value BOT_TOKEN "$token"
   set_env_value ADMIN_CHAT_ID "$chat_id"
+  set_env_value PROJECT_NAME "$project_name"
   set_env_value DB_HOST "$db_host"
   set_env_value DB_PORT "$db_port"
   set_env_value DB_USER "$db_user"
@@ -310,6 +326,7 @@ check_env_keys() {
   required_keys=(
     BOT_TOKEN
     ADMIN_CHAT_ID
+    PROJECT_NAME
     DB_HOST
     DB_PORT
     DB_USER
@@ -331,8 +348,10 @@ check_env_keys() {
 
   local bot_token
   local admin_chat_id
+  local project_name
   bot_token="$(get_env_value BOT_TOKEN)"
   admin_chat_id="$(get_env_value ADMIN_CHAT_ID)"
+  project_name="$(get_env_value PROJECT_NAME)"
 
   if [[ -z "$bot_token" || "$bot_token" == "your_bot_token_here" ]]; then
     die "BOT_TOKEN не заполнен. Выполни: ./install.sh env"
@@ -342,6 +361,9 @@ check_env_keys() {
   fi
   if [[ ! "$admin_chat_id" =~ ^-?[0-9]+$ ]]; then
     die "ADMIN_CHAT_ID должен быть числом. Выполни: ./install.sh env"
+  fi
+  if [[ -z "$project_name" ]]; then
+    die "PROJECT_NAME не заполнен. Выполни: ./install.sh env"
   fi
 
   local db_host
@@ -382,7 +404,7 @@ project_ready_text() {
 
 env_ready_text() {
   local required_keys
-  required_keys=(BOT_TOKEN ADMIN_CHAT_ID DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME)
+  required_keys=(BOT_TOKEN ADMIN_CHAT_ID PROJECT_NAME DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME)
   local key=""
   for key in "${required_keys[@]}"; do
     if ! grep -Eq "^${key}=" "$APP_DIR/.env" 2>/dev/null; then
@@ -393,8 +415,10 @@ env_ready_text() {
 
   local bot_token
   local admin_chat_id
+  local project_name
   bot_token="$(get_env_value BOT_TOKEN)"
   admin_chat_id="$(get_env_value ADMIN_CHAT_ID)"
+  project_name="$(get_env_value PROJECT_NAME)"
   if [[ -z "$bot_token" || "$bot_token" == "your_bot_token_here" ]]; then
     echo "BOT_TOKEN не задан"
     return
@@ -405,6 +429,10 @@ env_ready_text() {
   fi
   if [[ ! "$admin_chat_id" =~ ^-?[0-9]+$ ]]; then
     echo "ADMIN_CHAT_ID неверный"
+    return
+  fi
+  if [[ -z "$project_name" ]]; then
+    echo "PROJECT_NAME не задан"
     return
   fi
 
