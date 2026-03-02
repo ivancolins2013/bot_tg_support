@@ -1,4 +1,4 @@
-from aiogram import Router, F, Bot
+﻿from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.types import (
     Message,
@@ -586,7 +586,7 @@ async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
 
     text = (
-        "Привет! Я бот поддержки проекта VEGA.\n\n"
+        "Привет! Я бот поддержки проекта DETROIT.\n\n"
         "Через меня ты можешь:\n"
         "• 📩 создать тикет и описать свою проблему;\n"
         "• 📜 посмотреть список своих тикетов и их статус;\n"
@@ -602,8 +602,7 @@ async def cmd_profile(message: Message):
     profile = await get_user_profile(message.from_user.id)
     if not profile:
         await message.answer(
-            "Профиль еще не создан.\n"
-            "Напиши /setnick и укажи никнейм на сервере.",
+            "Профиль еще не создан.\n" "Напиши /setnick и укажи никнейм на сервере.",
             reply_markup=main_keyboard(),
         )
         return
@@ -737,7 +736,9 @@ async def ticket_text_received(
     if await handle_new_ticket_photo_album_message(message, state, bot, settings):
         return
 
-    if any(album_key[0] == message.from_user.id for album_key in NEW_TICKET_PHOTO_ALBUMS):
+    if any(
+        album_key[0] == message.from_user.id for album_key in NEW_TICKET_PHOTO_ALBUMS
+    ):
         await message.answer(
             "⏳ Получаю альбом, подожди пару секунд и не отправляй дополнительные сообщения.",
             reply_markup=main_keyboard(),

@@ -1,11 +1,11 @@
--- db.sql (VEGA SupportBot Tickets)
+-- db.sql (DETROIT SupportBot Tickets)
 -- charset: utf8mb4
 
-CREATE DATABASE IF NOT EXISTS `vega_supportbot`
+CREATE DATABASE IF NOT EXISTS `detroit_supportbot`
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE `vega_supportbot`;
+USE `detroit_supportbot`;
 
 -- Таблица тикетов
 CREATE TABLE IF NOT EXISTS `tickets` (

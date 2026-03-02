@@ -119,7 +119,7 @@ DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=
-DB_NAME=vega_supportbot
+DB_NAME=detroit_supportbot
 EOF
   log "Создан базовый .env"
 }
@@ -197,7 +197,7 @@ setup_bot_identity() {
     current_db_password=""
   fi
   if [[ -z "$current_db_name" ]]; then
-    current_db_name="vega_supportbot"
+    current_db_name="detroit_supportbot"
   fi
 
   echo
@@ -939,4 +939,3 @@ main() {
 }
 
 main "$@"
-
