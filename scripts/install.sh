@@ -58,29 +58,29 @@ die() {
 
 usage() {
   cat <<EOF
-РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ:
-  ./install.sh                 # РёРЅС‚РµСЂР°РєС‚РёРІРЅРѕРµ РјРµРЅСЋ СѓСЃС‚Р°РЅРѕРІРєРё
-  ./install.sh full            # РїРѕР»РЅР°СЏ СѓСЃС‚Р°РЅРѕРІРєР°
-  ./install.sh env             # РЅР°СЃС‚СЂРѕРёС‚СЊ BOT_TOKEN/ADMIN_CHAT_ID Рё Р‘Р” РІ .env
-  ./install.sh check           # РїСЂРѕРІРµСЂРєР° РїСЂРѕРµРєС‚Р° Рё .env
-  ./install.sh components      # СЃРёСЃС‚РµРјРЅС‹Рµ РєРѕРјРїРѕРЅРµРЅС‚С‹ (python3/venv/pip)
+Использование:
+  ./install.sh                 # интерактивное меню установки
+  ./install.sh full            # полная установка
+  ./install.sh env             # настроить BOT_TOKEN/ADMIN_CHAT_ID и БД в .env
+  ./install.sh check           # проверка проекта и .env
+  ./install.sh components      # системные компоненты (python3/venv/pip)
   ./install.sh python          # .venv + pip install -r requirements.txt
-  ./install.sh service         # СЃРѕР·РґР°С‚СЊ/РѕР±РЅРѕРІРёС‚СЊ systemd-СЃРµСЂРІРёСЃ
-  ./install.sh manage [URL]    # СЃРєР°С‡Р°С‚СЊ manage.sh (СЃРєСЂРёРїС‚ СѓРїСЂР°РІР»РµРЅРёСЏ)
-  ./install.sh open            # РѕС‚РєСЂС‹С‚СЊ manage.sh (РјРµРЅСЋ СѓРїСЂР°РІР»РµРЅРёСЏ)
-  ./install.sh bots            # open list_bots.sh (bots switcher)
-  ./install.sh auto-on         # РІРєР»СЋС‡РёС‚СЊ Р°РІС‚Рѕ-РѕС‚РєСЂС‹С‚РёРµ manage.sh РїСЂРё SSH-РІС…РѕРґРµ
-  ./install.sh auto-off        # РІС‹РєР»СЋС‡РёС‚СЊ Р°РІС‚Рѕ-РѕС‚РєСЂС‹С‚РёРµ manage.sh РїСЂРё SSH-РІС…РѕРґРµ
-  ./install.sh purge           # РїРѕР»РЅРѕСЃС‚СЊСЋ СѓРґР°Р»РёС‚СЊ Р±РѕС‚Р° СЃ VDS
+  ./install.sh service         # создать/обновить systemd-сервис
+  ./install.sh manage [URL]    # скачать manage.sh (скрипт управления)
+  ./install.sh open            # открыть manage.sh (меню управления)
+  ./install.sh bots            # открыть list_bots.sh (переключатель ботов)
+  ./install.sh auto-on         # включить авто-открытие manage.sh при SSH-входе
+  ./install.sh auto-off        # выключить авто-открытие manage.sh при SSH-входе
+  ./install.sh purge           # полностью удалить бота с VDS
 
-Р СѓСЃСЃРєРёРµ Р°Р»РёР°СЃС‹:
-  РїРѕР»РЅР°СЏ, РѕРєСЂСѓР¶РµРЅРёРµ, РїСЂРѕРІРµСЂРєР°, РєРѕРјРїРѕРЅРµРЅС‚С‹, РїРёС‚РѕРЅ, СЃРµСЂРІРёСЃ, СѓРїСЂР°РІР»РµРЅРёРµ,
-  РѕС‚РєСЂС‹С‚СЊ, Р°РІС‚Рѕ-РІРєР», Р°РІС‚Рѕ-РІС‹РєР», СѓРґР°Р»РёС‚СЊ, РїРѕРјРѕС‰СЊ
+Русские алиасы:
+  полная, окружение, проверка, компоненты, питон, сервис, управление,
+  открыть, авто-вкл, авто-выкл, удалить, помощь
 
-РџСЂРёРјРµС‡Р°РЅРёРµ:
-  Р—Р°РїСѓСЃРє/РѕСЃС‚Р°РЅРѕРІРєР°/Р»РѕРіРё Р±РѕС‚Р° РІС‹РїРѕР»РЅСЏСЋС‚СЃСЏ С‡РµСЂРµР· manage.sh.
+Примечание:
+  Запуск/остановка/логи бота выполняются через manage.sh.
 
-РџРµСЂРµРјРµРЅРЅС‹Рµ РѕРєСЂСѓР¶РµРЅРёСЏ:
+Переменные окружения:
   SERVICE_NAME=$SERVICE_NAME
   ROOT_DIR=$ROOT_DIR
   BOT_DIR=$BOT_DIR
@@ -102,26 +102,26 @@ detect_sudo() {
     return
   fi
 
-  die "Р—Р°РїСѓСЃС‚Рё РѕС‚ root РёР»Рё СѓСЃС‚Р°РЅРѕРІРё sudo."
+  die "Запусти от root или установи sudo."
 }
 
 require_cmd() {
   local cmd="$1"
   if ! command -v "$cmd" >/dev/null 2>&1; then
-    die "РљРѕРјР°РЅРґР° РЅРµ РЅР°Р№РґРµРЅР°: $cmd"
+    die "Команда не найдена: $cmd"
   fi
 }
 
 check_layout() {
   if [[ ! -d "$BOT_DIR" ]]; then
-    die "РќРµ РЅР°Р№РґРµРЅ РєР°С‚Р°Р»РѕРі Р±РѕС‚Р°: $BOT_DIR"
+    die "Не найден каталог бота: $BOT_DIR"
   fi
 }
 
 check_project_files() {
   check_layout
-  [[ -f "$BOT_DIR/bot.py" ]] || die "РќРµ РЅР°Р№РґРµРЅ $BOT_DIR/bot.py"
-  [[ -f "$BOT_DIR/requirements.txt" ]] || die "РќРµ РЅР°Р№РґРµРЅ $BOT_DIR/requirements.txt"
+  [[ -f "$BOT_DIR/bot.py" ]] || die "Не найден $BOT_DIR/bot.py"
+  [[ -f "$BOT_DIR/requirements.txt" ]] || die "Не найден $BOT_DIR/requirements.txt"
 }
 
 ensure_env_file_exists() {
@@ -133,7 +133,7 @@ ensure_env_file_exists() {
 
   if [[ -f "$BOT_DIR/.env.example" ]]; then
     cp "$BOT_DIR/.env.example" "$BOT_DIR/.env"
-    log "РЎРѕР·РґР°РЅ .env РёР· .env.example"
+    log "Создан .env из .env.example"
     return
   fi
 
@@ -148,7 +148,7 @@ DB_USER=root
 DB_PASSWORD=
 DB_NAME=detroit_supportbot
 EOF
-  log "РЎРѕР·РґР°РЅ Р±Р°Р·РѕРІС‹Р№ .env"
+  log "Создан базовый .env"
 }
 
 get_env_value() {
@@ -205,7 +205,7 @@ setup_bot_identity() {
   ensure_env_file_exists
 
   if [[ ! -t 0 ]]; then
-    log "РќРµРёРЅС‚РµСЂР°РєС‚РёРІРЅС‹Р№ СЂРµР¶РёРј: РЅР°СЃС‚СЂРѕР№РєР° BOT_TOKEN/ADMIN_CHAT_ID РїСЂРѕРїСѓС‰РµРЅР°."
+    log "Неинтерактивный режим: настройка BOT_TOKEN/ADMIN_CHAT_ID пропущена."
     return
   fi
 
@@ -261,77 +261,77 @@ setup_bot_identity() {
   fi
 
   echo
-  echo "РќР°СЃС‚СЂРѕР№РєР° .env"
+  echo "Настройка .env"
   if [[ -n "$current_token" ]]; then
-    echo "РўРµРєСѓС‰РёР№ BOT_TOKEN СѓР¶Рµ Р·Р°РґР°РЅ."
+    echo "Текущий BOT_TOKEN уже задан."
   fi
   if [[ -n "$current_chat_id" ]]; then
-    echo "РўРµРєСѓС‰РёР№ ADMIN_CHAT_ID: $current_chat_id"
+    echo "Текущий ADMIN_CHAT_ID: $current_chat_id"
   fi
 
-  read -r -p "Р’РІРµРґРё BOT_TOKEN ${current_token:+(Enter = РѕСЃС‚Р°РІРёС‚СЊ С‚РµРєСѓС‰РёР№)}: " token
+  read -r -p "Введи BOT_TOKEN ${current_token:+(Enter = оставить текущий)}: " token
   if [[ -z "$token" ]]; then
     token="$current_token"
   fi
 
-  read -r -p "Р’РІРµРґРё ADMIN_CHAT_ID ${current_chat_id:+(Enter = РѕСЃС‚Р°РІРёС‚СЊ С‚РµРєСѓС‰РёР№)}: " chat_id
+  read -r -p "Введи ADMIN_CHAT_ID ${current_chat_id:+(Enter = оставить текущий)}: " chat_id
   if [[ -z "$chat_id" ]]; then
     chat_id="$current_chat_id"
   fi
 
-  read -r -p "Р’РІРµРґРё PROJECT_NAME (Enter = ${current_project_name}): " project_name
+  read -r -p "Введи PROJECT_NAME (Enter = ${current_project_name}): " project_name
   if [[ -z "$project_name" ]]; then
     project_name="$current_project_name"
   fi
 
-  read -r -p "Р’РІРµРґРё DB_HOST (Enter = ${current_db_host}): " db_host
+  read -r -p "Введи DB_HOST (Enter = ${current_db_host}): " db_host
   if [[ -z "$db_host" ]]; then
     db_host="$current_db_host"
   fi
 
-  read -r -p "Р’РІРµРґРё DB_PORT (Enter = ${current_db_port}): " db_port
+  read -r -p "Введи DB_PORT (Enter = ${current_db_port}): " db_port
   if [[ -z "$db_port" ]]; then
     db_port="$current_db_port"
   fi
 
-  read -r -p "Р’РІРµРґРё DB_USER (Enter = ${current_db_user}): " db_user
+  read -r -p "Введи DB_USER (Enter = ${current_db_user}): " db_user
   if [[ -z "$db_user" ]]; then
     db_user="$current_db_user"
   fi
 
-  read_secret db_password "Р’РІРµРґРё DB_PASSWORD (Enter = РѕСЃС‚Р°РІРёС‚СЊ С‚РµРєСѓС‰РёР№): "
+  read_secret db_password "Введи DB_PASSWORD (Enter = оставить текущий): "
   if [[ -z "$db_password" ]]; then
     db_password="$current_db_password"
   fi
 
-  read -r -p "Р’РІРµРґРё DB_NAME (Enter = ${current_db_name}): " db_name
+  read -r -p "Введи DB_NAME (Enter = ${current_db_name}): " db_name
   if [[ -z "$db_name" ]]; then
     db_name="$current_db_name"
   fi
 
   if [[ -z "$token" ]]; then
-    die "BOT_TOKEN РЅРµ Р·Р°РґР°РЅ."
+    die "BOT_TOKEN не задан."
   fi
   if [[ -z "$chat_id" ]]; then
-    die "ADMIN_CHAT_ID РЅРµ Р·Р°РґР°РЅ."
+    die "ADMIN_CHAT_ID не задан."
   fi
   if [[ ! "$chat_id" =~ ^-?[0-9]+$ ]]; then
-    die "ADMIN_CHAT_ID РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ С‡РёСЃР»РѕРј (РЅР°РїСЂРёРјРµСЂ: -1001234567890)."
+    die "ADMIN_CHAT_ID должен быть числом (например: -1001234567890)."
   fi
   if [[ -z "$project_name" ]]; then
-    die "PROJECT_NAME РЅРµ Р·Р°РґР°РЅ."
+    die "PROJECT_NAME не задан."
   fi
   if [[ -z "$db_host" ]]; then
-    die "DB_HOST РЅРµ Р·Р°РґР°РЅ."
+    die "DB_HOST не задан."
   fi
   if [[ -z "$db_port" || ! "$db_port" =~ ^[0-9]+$ ]]; then
-    die "DB_PORT РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ С‡РёСЃР»РѕРј."
+    die "DB_PORT должен быть числом."
   fi
   if [[ -z "$db_user" ]]; then
-    die "DB_USER РЅРµ Р·Р°РґР°РЅ."
+    die "DB_USER не задан."
   fi
   if [[ -z "$db_name" ]]; then
-    die "DB_NAME РЅРµ Р·Р°РґР°РЅ."
+    die "DB_NAME не задан."
   fi
 
   set_env_value BOT_TOKEN "$token"
@@ -342,7 +342,7 @@ setup_bot_identity() {
   set_env_value DB_USER "$db_user"
   set_env_value DB_PASSWORD "$db_password"
   set_env_value DB_NAME "$db_name"
-  log "РћР±РЅРѕРІР»РµРЅС‹ BOT_TOKEN, ADMIN_CHAT_ID Рё РЅР°СЃС‚СЂРѕР№РєРё Р‘Р” РІ .env"
+  log "Обновлены BOT_TOKEN, ADMIN_CHAT_ID и настройки БД в .env"
 }
 
 check_env_keys() {
@@ -369,7 +369,7 @@ check_env_keys() {
   done
 
   if [[ "${#missing[@]}" -gt 0 ]]; then
-    die "Р’ .env РЅРµ С…РІР°С‚Р°РµС‚ РєР»СЋС‡РµР№: ${missing[*]}"
+    die "В .env не хватает ключей: ${missing[*]}"
   fi
 
   local bot_token
@@ -380,16 +380,16 @@ check_env_keys() {
   project_name="$(get_env_value PROJECT_NAME)"
 
   if [[ -z "$bot_token" || "$bot_token" == "your_bot_token_here" ]]; then
-    die "BOT_TOKEN РЅРµ Р·Р°РїРѕР»РЅРµРЅ. Р’С‹РїРѕР»РЅРё: ./install.sh env"
+    die "BOT_TOKEN не заполнен. Выполни: ./install.sh env"
   fi
   if [[ -z "$admin_chat_id" || "$admin_chat_id" == "-1000000000000" ]]; then
-    die "ADMIN_CHAT_ID РЅРµ Р·Р°РїРѕР»РЅРµРЅ. Р’С‹РїРѕР»РЅРё: ./install.sh env"
+    die "ADMIN_CHAT_ID не заполнен. Выполни: ./install.sh env"
   fi
   if [[ ! "$admin_chat_id" =~ ^-?[0-9]+$ ]]; then
-    die "ADMIN_CHAT_ID РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ С‡РёСЃР»РѕРј. Р’С‹РїРѕР»РЅРё: ./install.sh env"
+    die "ADMIN_CHAT_ID должен быть числом. Выполни: ./install.sh env"
   fi
   if [[ -z "$project_name" ]]; then
-    die "PROJECT_NAME РЅРµ Р·Р°РїРѕР»РЅРµРЅ. Р’С‹РїРѕР»РЅРё: ./install.sh env"
+    die "PROJECT_NAME не заполнен. Выполни: ./install.sh env"
   fi
 
   local db_host
@@ -404,27 +404,27 @@ check_env_keys() {
   db_name="$(get_env_value DB_NAME)"
 
   if [[ -z "$db_host" ]]; then
-    die "DB_HOST РЅРµ Р·Р°РїРѕР»РЅРµРЅ. Р’С‹РїРѕР»РЅРё: ./install.sh env"
+    die "DB_HOST не заполнен. Выполни: ./install.sh env"
   fi
   if [[ -z "$db_port" || ! "$db_port" =~ ^[0-9]+$ ]]; then
-    die "DB_PORT РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ С‡РёСЃР»РѕРј. Р’С‹РїРѕР»РЅРё: ./install.sh env"
+    die "DB_PORT должен быть числом. Выполни: ./install.sh env"
   fi
   if [[ -z "$db_user" ]]; then
-    die "DB_USER РЅРµ Р·Р°РїРѕР»РЅРµРЅ. Р’С‹РїРѕР»РЅРё: ./install.sh env"
+    die "DB_USER не заполнен. Выполни: ./install.sh env"
   fi
   if [[ "$db_password" == "your_db_password_here" ]]; then
-    die "DB_PASSWORD СЃРѕРґРµСЂР¶РёС‚ С€Р°Р±Р»РѕРЅ. Р’С‹РїРѕР»РЅРё: ./install.sh env"
+    die "DB_PASSWORD содержит шаблон. Выполни: ./install.sh env"
   fi
   if [[ -z "$db_name" ]]; then
-    die "DB_NAME РЅРµ Р·Р°РїРѕР»РЅРµРЅ. Р’С‹РїРѕР»РЅРё: ./install.sh env"
+    die "DB_NAME не заполнен. Выполни: ./install.sh env"
   fi
 }
 
 project_ready_text() {
   if [[ -f "$BOT_DIR/bot.py" && -f "$BOT_DIR/requirements.txt" && -f "$BOT_DIR/.env" ]]; then
-    echo "РіРѕС‚РѕРІРѕ"
+    echo "готово"
   else
-    echo "РЅРµ РіРѕС‚РѕРІРѕ"
+    echo "не готово"
   fi
 }
 
@@ -434,7 +434,7 @@ env_ready_text() {
   local key=""
   for key in "${required_keys[@]}"; do
     if ! grep -Eq "^${key}=" "$BOT_DIR/.env" 2>/dev/null; then
-      echo "РѕС€РёР±РєРё"
+      echo "ошибки"
       return
     fi
   done
@@ -446,49 +446,49 @@ env_ready_text() {
   admin_chat_id="$(get_env_value ADMIN_CHAT_ID)"
   project_name="$(get_env_value PROJECT_NAME)"
   if [[ -z "$bot_token" || "$bot_token" == "your_bot_token_here" ]]; then
-    echo "BOT_TOKEN РЅРµ Р·Р°РґР°РЅ"
+    echo "BOT_TOKEN не задан"
     return
   fi
   if [[ -z "$admin_chat_id" || "$admin_chat_id" == "-1000000000000" ]]; then
-    echo "ADMIN_CHAT_ID РЅРµ Р·Р°РґР°РЅ"
+    echo "ADMIN_CHAT_ID не задан"
     return
   fi
   if [[ ! "$admin_chat_id" =~ ^-?[0-9]+$ ]]; then
-    echo "ADMIN_CHAT_ID РЅРµРІРµСЂРЅС‹Р№"
+    echo "ADMIN_CHAT_ID неверный"
     return
   fi
   if [[ -z "$project_name" ]]; then
-    echo "PROJECT_NAME РЅРµ Р·Р°РґР°РЅ"
+    echo "PROJECT_NAME не задан"
     return
   fi
 
-  echo "РіРѕС‚РѕРІРѕ"
+  echo "готово"
 }
 
 venv_ready_text() {
   if [[ -x "$VENV_DIR/bin/python" ]]; then
-    echo "РіРѕС‚РѕРІРѕ"
+    echo "готово"
   else
-    echo "РЅРµ РіРѕС‚РѕРІРѕ"
+    echo "не готово"
   fi
 }
 
 manage_ready_text() {
   if [[ -x "$SCRIPT_DIR/manage.sh" ]]; then
-    echo "СѓСЃС‚Р°РЅРѕРІР»РµРЅ"
+    echo "установлен"
   elif [[ -f "$SCRIPT_DIR/manage.sh" ]]; then
-    echo "РµСЃС‚СЊ (Р±РµР· +x)"
+    echo "есть (без +x)"
   else
-    echo "РЅРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅ"
+    echo "не установлен"
   fi
 }
 
 manage_autostart_text() {
   local bashrc="$HOME/.bashrc"
   if [[ -f "$bashrc" ]] && grep -Fq "$MANAGE_AUTOOPEN_START" "$bashrc"; then
-    echo "РІРєР»СЋС‡РµРЅРѕ"
+    echo "включено"
   else
-    echo "РІС‹РєР»СЋС‡РµРЅРѕ"
+    echo "выключено"
   fi
 }
 
@@ -513,7 +513,7 @@ enable_manage_autostart() {
   local bashrc="$HOME/.bashrc"
 
   if [[ ! -f "$manage_path" ]]; then
-    echo "manage.sh РЅРµ РЅР°Р№РґРµРЅ. РЎРЅР°С‡Р°Р»Р° СЃРєР°С‡Р°Р№/РґРѕР±Р°РІСЊ РµРіРѕ (РїСѓРЅРєС‚ 6)."
+    echo "manage.sh не найден. Сначала скачай/добавь его (пункт 6)."
     return
   fi
 
@@ -533,12 +533,12 @@ fi
 $MANAGE_AUTOOPEN_END
 EOF
 
-  log "РђРІС‚Рѕ-РѕС‚РєСЂС‹С‚РёРµ manage.sh РІРєР»СЋС‡РµРЅРѕ РІ $bashrc"
+  log "Авто-открытие manage.sh включено в $bashrc"
 }
 
 disable_manage_autostart() {
   remove_manage_autostart_block
-  log "РђРІС‚Рѕ-РѕС‚РєСЂС‹С‚РёРµ manage.sh РІС‹РєР»СЋС‡РµРЅРѕ."
+  log "Авто-открытие manage.sh выключено."
 }
 
 ask_manage_autostart_enable() {
@@ -547,13 +547,13 @@ ask_manage_autostart_enable() {
     return 0
   fi
 
-  read -r -p "Р’РєР»СЋС‡РёС‚СЊ Р°РІС‚Рѕ-РѕС‚РєСЂС‹С‚РёРµ manage.sh РїСЂРё SSH-РІС…РѕРґРµ? [y/N]: " answer
+  read -r -p "Включить авто-открытие manage.sh при SSH-входе? [y/N]: " answer
   case "${answer,,}" in
-    y|yes|Рґ|РґР°)
+    y|yes|д|да)
       enable_manage_autostart
       ;;
     *)
-      log "РђРІС‚Рѕ-РѕС‚РєСЂС‹С‚РёРµ manage.sh РЅРµ РІРєР»СЋС‡РµРЅРѕ."
+      log "Авто-открытие manage.sh не включено."
       ;;
   esac
 }
@@ -611,7 +611,7 @@ ask_list_bots_autostart_enable() {
 
   read -r -p "Enable auto-open of list_bots.sh at SSH login? (recommended if you have many bots) [y/N]: " answer
   case "${answer,,}" in
-    y|yes)
+    y|yes|Рґ|РґР°)
       enable_list_bots_autostart
       ;;
     *)
@@ -626,22 +626,22 @@ purge_bot() {
 
   local app_dir="$ROOT_DIR"
   if [[ -z "$app_dir" || "$app_dir" == "/" || "$app_dir" == "/root" ]]; then
-    die "РќРµР±РµР·РѕРїР°СЃРЅС‹Р№ ROOT_DIR РґР»СЏ СѓРґР°Р»РµРЅРёСЏ: '$app_dir'"
+    die "Небезопасный ROOT_DIR для удаления: '$app_dir'"
   fi
 
   if [[ ! -t 0 ]]; then
-    die "Р”Р»СЏ РїРѕР»РЅРѕР№ РѕС‡РёСЃС‚РєРё РЅСѓР¶РµРЅ РёРЅС‚РµСЂР°РєС‚РёРІРЅС‹Р№ Р·Р°РїСѓСЃРє (РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ)."
+    die "Для полной очистки нужен интерактивный запуск (подтверждение)."
   fi
 
   echo
-  echo "Р’РќРРњРђРќРР•: Р±СѓРґРµС‚ СѓРґР°Р»РµРЅ Р±РѕС‚ СЃ VDS."
-  echo "РЎРµСЂРІРёСЃ: $SERVICE_NAME"
-  echo "РџР°РїРєР° РїСЂРѕРµРєС‚Р°: $app_dir"
-  echo "РЎРёСЃС‚РµРјРЅС‹Р№ СЃРµСЂРІРёСЃ-С„Р°Р№Р»: $SERVICE_PATH"
+  echo "ВНИМАНИЕ: будет удален бот с VDS."
+  echo "Сервис: $SERVICE_NAME"
+  echo "Папка проекта: $app_dir"
+  echo "Системный сервис-файл: $SERVICE_PATH"
   echo
-  read -r -p "Р”Р»СЏ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ РІРІРµРґРё DELETE: " confirm
+  read -r -p "Для подтверждения введи DELETE: " confirm
   if [[ "$confirm" != "DELETE" ]]; then
-    echo "РћС‚РјРµРЅРµРЅРѕ."
+    echo "Отменено."
     return
   fi
 
@@ -656,57 +656,57 @@ purge_bot() {
 
   rm -rf "$app_dir"
 
-  echo "Р‘РѕС‚ РїРѕР»РЅРѕСЃС‚СЊСЋ СѓРґР°Р»РµРЅ СЃ VDS."
-  echo "РўРµРєСѓС‰СѓСЋ SSH-СЃРµСЃСЃРёСЋ РјРѕР¶РЅРѕ Р·Р°РєСЂС‹С‚СЊ."
+  echo "Бот полностью удален с VDS."
+  echo "Текущую SSH-сессию можно закрыть."
   exit 0
 }
 
 service_state_text() {
   if ! command -v systemctl >/dev/null 2>&1; then
-    echo "РЅРµС‚ systemd"
+    echo "нет systemd"
     return
   fi
   if systemctl is-active --quiet "$SERVICE_NAME"; then
-    echo "Р·Р°РїСѓС‰РµРЅ"
+    echo "запущен"
   else
-    echo "РѕСЃС‚Р°РЅРѕРІР»РµРЅ"
+    echo "остановлен"
   fi
 }
 
 autostart_state_text() {
   if ! command -v systemctl >/dev/null 2>&1; then
-    echo "РЅРµС‚ systemd"
+    echo "нет systemd"
     return
   fi
   if systemctl is-enabled --quiet "$SERVICE_NAME"; then
-    echo "РІРєР»СЋС‡РµРЅ"
+    echo "включен"
   else
-    echo "РІС‹РєР»СЋС‡РµРЅ"
+    echo "выключен"
   fi
 }
 
 install_system_packages() {
   detect_sudo
   if command -v apt-get >/dev/null 2>&1; then
-    log "РЈСЃС‚Р°РЅРѕРІРєР° РїР°РєРµС‚РѕРІ С‡РµСЂРµР· apt-get..."
+    log "Установка пакетов через apt-get..."
     ${SUDO_CMD} apt-get update
     ${SUDO_CMD} apt-get install -y python3 python3-venv python3-pip
     return
   fi
 
   if command -v dnf >/dev/null 2>&1; then
-    log "РЈСЃС‚Р°РЅРѕРІРєР° РїР°РєРµС‚РѕРІ С‡РµСЂРµР· dnf..."
+    log "Установка пакетов через dnf..."
     ${SUDO_CMD} dnf install -y python3 python3-pip
     return
   fi
 
   if command -v yum >/dev/null 2>&1; then
-    log "РЈСЃС‚Р°РЅРѕРІРєР° РїР°РєРµС‚РѕРІ С‡РµСЂРµР· yum..."
+    log "Установка пакетов через yum..."
     ${SUDO_CMD} yum install -y python3 python3-pip
     return
   fi
 
-  die "РќРµРёР·РІРµСЃС‚РЅС‹Р№ РїР°РєРµС‚РЅС‹Р№ РјРµРЅРµРґР¶РµСЂ. РЈСЃС‚Р°РЅРѕРІРё python3/python3-venv/python3-pip РІСЂСѓС‡РЅСѓСЋ."
+  die "Неизвестный пакетный менеджер. Установи python3/python3-venv/python3-pip вручную."
 }
 
 install_python_deps() {
@@ -714,13 +714,13 @@ install_python_deps() {
   check_env_keys
   require_cmd "$PYTHON_BIN"
 
-  log "РЎРѕР·РґР°СЋ РІРёСЂС‚СѓР°Р»СЊРЅРѕРµ РѕРєСЂСѓР¶РµРЅРёРµ: $VENV_DIR"
+  log "Создаю виртуальное окружение: $VENV_DIR"
   "$PYTHON_BIN" -m venv "$VENV_DIR"
 
-  log "РћР±РЅРѕРІР»СЏСЋ pip..."
+  log "Обновляю pip..."
   "$VENV_DIR/bin/python" -m pip install --upgrade pip
 
-  log "РЎС‚Р°РІР»СЋ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РёР· requirements.txt..."
+  log "Ставлю зависимости из requirements.txt..."
   "$VENV_DIR/bin/pip" install -r "$BOT_DIR/requirements.txt"
 }
 
@@ -737,26 +737,26 @@ download_manage_script() {
   local target="$SCRIPT_DIR/manage.sh"
 
   if [[ -z "$url" && -t 0 ]]; then
-    read -r -p "Р’СЃС‚Р°РІСЊ РїСЂСЏРјСѓСЋ СЃСЃС‹Р»РєСѓ РЅР° manage.sh (Enter = РїСЂРѕРїСѓСЃС‚РёС‚СЊ): " url
+    read -r -p "Вставь прямую ссылку на manage.sh (Enter = пропустить): " url
   fi
 
   if [[ -z "$url" ]]; then
-    log "РЎРєР°С‡РёРІР°РЅРёРµ manage.sh РїСЂРѕРїСѓС‰РµРЅРѕ."
+    log "Скачивание manage.sh пропущено."
     return 0
   fi
 
   if command -v curl >/dev/null 2>&1; then
-    log "РЎРєР°С‡РёРІР°СЋ manage.sh С‡РµСЂРµР· curl..."
+    log "Скачиваю manage.sh через curl..."
     curl -fsSL "$url" -o "$target"
   elif command -v wget >/dev/null 2>&1; then
-    log "РЎРєР°С‡РёРІР°СЋ manage.sh С‡РµСЂРµР· wget..."
+    log "Скачиваю manage.sh через wget..."
     wget -qO "$target" "$url"
   else
-    die "РќРµ РЅР°Р№РґРµРЅ curl РёР»Рё wget. РЈСЃС‚Р°РЅРѕРІРё РѕРґРёРЅ РёР· РЅРёС… Рё РїРѕРІС‚РѕСЂРё."
+    die "Не найден curl или wget. Установи один из них и повтори."
   fi
 
   chmod +x "$target"
-  log "manage.sh СѓСЃС‚Р°РЅРѕРІР»РµРЅ: $target"
+  log "manage.sh установлен: $target"
 }
 
 ask_manage_script_install() {
@@ -769,13 +769,13 @@ ask_manage_script_install() {
     return 0
   fi
 
-  read -r -p "РЎРєР°С‡Р°С‚СЊ manage.sh РґР»СЏ СѓРїСЂР°РІР»РµРЅРёСЏ Р±РѕС‚РѕРј? [y/N]: " answer
+  read -r -p "Скачать manage.sh для управления ботом? [y/N]: " answer
   case "${answer,,}" in
-    y|yes|Рґ|РґР°)
+    y|yes|д|да)
       download_manage_script
       ;;
     *)
-      log "РЁР°Рі manage.sh РїСЂРѕРїСѓС‰РµРЅ."
+      log "Шаг manage.sh пропущен."
       ;;
   esac
 }
@@ -783,24 +783,24 @@ ask_manage_script_install() {
 open_manage_script() {
   local manage_path="$SCRIPT_DIR/manage.sh"
   if [[ ! -f "$manage_path" ]]; then
-    echo "manage.sh РЅРµ РЅР°Р№РґРµРЅ. РЎРЅР°С‡Р°Р»Р° СЃРєР°С‡Р°Р№/РґРѕР±Р°РІСЊ РµРіРѕ (РїСѓРЅРєС‚ 6)."
+    echo "manage.sh не найден. Сначала скачай/добавь его (пункт 6)."
     return
   fi
 
   chmod +x "$manage_path"
-  log "РћС‚РєСЂС‹РІР°СЋ РјРµРЅСЋ СѓРїСЂР°РІР»РµРЅРёСЏ: $manage_path"
+  log "Открываю меню управления: $manage_path"
   bash "$manage_path"
 }
 
 open_list_bots_script() {
   local list_bots_path="$SCRIPT_DIR/list_bots.sh"
   if [[ ! -f "$list_bots_path" ]]; then
-    echo "list_bots.sh not found рядом с install.sh."
+    echo "list_bots.sh не найден рядом с install.sh."
     return
   fi
 
   chmod +x "$list_bots_path"
-  log "Opening bots switcher: $list_bots_path"
+  log "Открываю список ботов: $list_bots_path"
   bash "$list_bots_path"
 }
 
@@ -809,10 +809,10 @@ write_systemd_service() {
   require_cmd systemctl
 
   if [[ ! -x "$VENV_DIR/bin/python" ]]; then
-    die "РЎРЅР°С‡Р°Р»Р° РІС‹РїРѕР»РЅРё С€Р°Рі Python-Р·Р°РІРёСЃРёРјРѕСЃС‚РµР№: ./install.sh python"
+    die "Сначала выполни шаг Python-зависимостей: ./install.sh python"
   fi
 
-  log "РЎРѕР·РґР°СЋ/РѕР±РЅРѕРІР»СЏСЋ systemd-СЃРµСЂРІРёСЃ: $SERVICE_PATH"
+  log "Создаю/обновляю systemd-сервис: $SERVICE_PATH"
   ${SUDO_CMD} tee "$SERVICE_PATH" >/dev/null <<EOF
 [Unit]
 Description=Telegram Support Bot
@@ -837,7 +837,7 @@ EOF
 start_service() {
   detect_sudo
   require_cmd systemctl
-  log "Р’РєР»СЋС‡Р°СЋ Р°РІС‚РѕР·Р°РїСѓСЃРє Рё Р·Р°РїСѓСЃРєР°СЋ СЃРµСЂРІРёСЃ $SERVICE_NAME..."
+  log "Включаю автозапуск и запускаю сервис $SERVICE_NAME..."
   ${SUDO_CMD} systemctl enable --now "$SERVICE_NAME"
   ${SUDO_CMD} systemctl status "$SERVICE_NAME" --no-pager || true
 }
@@ -845,7 +845,7 @@ start_service() {
 check_step() {
   check_project_files
   check_env_keys
-  log "РџСЂРѕРІРµСЂРєР° РїСЂРѕР№РґРµРЅР°: С„Р°Р№Р»С‹ Рё .env РІ РїРѕСЂСЏРґРєРµ."
+  log "Проверка пройдена: файлы и .env в порядке."
 }
 
 full_install() {
@@ -859,7 +859,7 @@ full_install() {
   ask_manage_script_install
   ask_manage_autostart_enable
   ask_list_bots_autostart_enable
-  log "Р“РѕС‚РѕРІРѕ: РїРѕР»РЅР°СЏ СѓСЃС‚Р°РЅРѕРІРєР° Р·Р°РІРµСЂС€РµРЅР°."
+  log "Готово: полная установка завершена."
 }
 
 menu_header() {
@@ -880,10 +880,10 @@ menu_item() {
 colorize_state() {
   local state="${1:-}"
   case "$state" in
-    "РіРѕС‚РѕРІРѕ"|"СѓСЃС‚Р°РЅРѕРІР»РµРЅ"|"РІРєР»СЋС‡РµРЅ"|"РІРєР»СЋС‡РµРЅРѕ"|"Р·Р°РїСѓС‰РµРЅ")
+    "готово"|"установлен"|"включен"|"включено"|"запущен")
       printf "%b%s%b" "$COLOR_GREEN" "$state" "$COLOR_RESET"
       ;;
-    "РЅРµ РіРѕС‚РѕРІРѕ"|"РѕС€РёР±РєРё"|"РЅРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅ"|"РѕСЃС‚Р°РЅРѕРІР»РµРЅ"|"РІС‹РєР»СЋС‡РµРЅ"|"РІС‹РєР»СЋС‡РµРЅРѕ"|"РЅРµС‚ systemd"|*"РЅРµ Р·Р°РґР°РЅ"*|*"РЅРµРІРµСЂРЅС‹Р№"*)
+    "не готово"|"ошибки"|"не установлен"|"остановлен"|"выключен"|"выключено"|"нет systemd"|*"не задан"*|*"неверный"*)
       printf "%b%s%b" "$COLOR_RED" "$state" "$COLOR_RESET"
       ;;
     *)
@@ -910,32 +910,32 @@ interactive_menu() {
     service_state="$(colorize_state "$(service_state_text)")"
     autostart_state="$(colorize_state "$(autostart_state_text)")"
 
-    menu_header "РЈСЃС‚Р°РЅРѕРІРєР° Рё РїРѕРґРіРѕС‚РѕРІРєР° Р±РѕС‚Р°"
-    printf "%bРЎРѕСЃС‚РѕСЏРЅРёРµ:%b\n" "$COLOR_DIM" "$COLOR_RESET"
-    printf "  %bРїСЂРѕРµРєС‚:%b      %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$project_state"
+    menu_header "Установка и подготовка бота"
+    printf "%bСостояние:%b\n" "$COLOR_DIM" "$COLOR_RESET"
+    printf "  %bпроект:%b      %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$project_state"
     printf "  %b.env:%b        %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$env_state"
     printf "  %b.venv:%b       %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$venv_state"
     printf "  %bmanage.sh:%b   %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$manage_state"
-    printf "  %bР°РІС‚Рѕ-manage:%b %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$manage_autostart_state"
-    printf "  %bСЃРµСЂРІРёСЃ:%b      %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$service_state"
-    printf "  %bР°РІС‚РѕР·Р°РїСѓСЃРє:%b  %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$autostart_state"
+    printf "  %bавто-manage:%b %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$manage_autostart_state"
+    printf "  %bсервис:%b      %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$service_state"
+    printf "  %bавтозапуск:%b  %s\n" "${COLOR_BLUE}${COLOR_BOLD}" "$COLOR_RESET" "$autostart_state"
     echo
 
-    menu_item "1" "РџРѕР»РЅР°СЏ СѓСЃС‚Р°РЅРѕРІРєР° (РІСЃРµ С€Р°РіРё) (СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ)"
-    menu_item "2" "РџСЂРѕРІРµСЂРєР° РїСЂРѕРµРєС‚Р° Рё .env"
-    menu_item "3" "РЈСЃС‚Р°РЅРѕРІРёС‚СЊ СЃРёСЃС‚РµРјРЅС‹Рµ РєРѕРјРїРѕРЅРµРЅС‚С‹"
-    menu_item "4" "РЈСЃС‚Р°РЅРѕРІРёС‚СЊ Python-Р·Р°РІРёСЃРёРјРѕСЃС‚Рё (.venv)"
-    menu_item "5" "РЎРѕР·РґР°С‚СЊ/РѕР±РЅРѕРІРёС‚СЊ systemd-СЃРµСЂРІРёСЃ"
-    menu_item "6" "РЎРєР°С‡Р°С‚СЊ manage.sh (СЃРєСЂРёРїС‚ СѓРїСЂР°РІР»РµРЅРёСЏ)"
-    menu_item "7" "РќР°СЃС‚СЂРѕРёС‚СЊ .env (BOT_TOKEN + ADMIN_CHAT_ID + DB_*)"
-    menu_item "8" "РћС‚РєСЂС‹С‚СЊ manage.sh (СѓРїСЂР°РІР»РµРЅРёРµ Р±РѕС‚РѕРј)"
-    menu_item "9" "Р’РєР»СЋС‡РёС‚СЊ Р°РІС‚Рѕ-РѕС‚РєСЂС‹С‚РёРµ manage.sh РїСЂРё SSH-РІС…РѕРґРµ"
-    menu_item "10" "Р’С‹РєР»СЋС‡РёС‚СЊ Р°РІС‚Рѕ-РѕС‚РєСЂС‹С‚РёРµ manage.sh"
-    menu_item "11" "РџРѕР»РЅРѕСЃС‚СЊСЋ СѓРґР°Р»РёС‚СЊ Р±РѕС‚Р° СЃ VDS"
+    menu_item "1" "Полная установка (все шаги) (рекомендуется)"
+    menu_item "2" "Проверка проекта и .env"
+    menu_item "3" "Установить системные компоненты"
+    menu_item "4" "Установить Python-зависимости (.venv)"
+    menu_item "5" "Создать/обновить systemd-сервис"
+    menu_item "6" "Скачать manage.sh (скрипт управления)"
+    menu_item "7" "Настроить .env (BOT_TOKEN + ADMIN_CHAT_ID + DB_*)"
+    menu_item "8" "Открыть manage.sh (управление ботом)"
+    menu_item "9" "Включить авто-открытие manage.sh при SSH-входе"
+    menu_item "10" "Выключить авто-открытие manage.sh"
+    menu_item "11" "Полностью удалить бота с VDS"
     menu_item "12" "Открыть list_bots.sh (выбор бота)"
-    menu_item "0" "Р’С‹С…РѕРґ"
+    menu_item "0" "Выход"
 
-    printf "%bР’С‹Р±РµСЂРё РїСѓРЅРєС‚ [0-12]: %b" "$COLOR_YELLOW" "$COLOR_RESET"
+    printf "%bВыбери пункт [0-12]: %b" "$COLOR_YELLOW" "$COLOR_RESET"
     read -r choice
     choice="${choice//$'\r'/}"
     choice="${choice#"${choice%%[![:space:]]*}"}"
@@ -959,7 +959,7 @@ interactive_menu() {
       12) open_list_bots_script ;;
       0) exit 0 ;;
       *)
-        printf "%bРќРµРІРµСЂРЅС‹Р№ РІС‹Р±РѕСЂ. Р’РІРµРґРё С‡РёСЃР»Рѕ РѕС‚ 0 РґРѕ 12.%b\n" "$COLOR_RED" "$COLOR_RESET"
+        printf "%bНеверный выбор. Введи число от 0 до 12.%b\n" "$COLOR_RED" "$COLOR_RESET"
         ;;
     esac
   done
@@ -978,48 +978,48 @@ main() {
   fi
 
   case "$cmd" in
-    full|all|РїРѕР»РЅР°СЏ)
+    full|all|полная)
       full_install
       ;;
-    env|setup|РѕРєСЂСѓР¶РµРЅРёРµ)
+    env|setup|окружение)
       setup_bot_identity
       ;;
-    check|РїСЂРѕРІРµСЂРєР°)
+    check|проверка)
       check_step
       ;;
-    components|component|РєРѕРјРїРѕРЅРµРЅС‚С‹)
+    components|component|компоненты)
       install_system_packages
       ;;
-    python|venv|РїРёС‚РѕРЅ)
+    python|venv|питон)
       install_python_deps
       prepare_project_files
       ;;
-    service|СЃРµСЂРІРёСЃ)
+    service|сервис)
       write_systemd_service
       ;;
-    manage|manager|СѓРїСЂР°РІР»РµРЅРёРµ)
+    manage|manager|управление)
       download_manage_script "${2:-}"
       ;;
-    open|run-manage|РѕС‚РєСЂС‹С‚СЊ)
+    open|run-manage|открыть)
       open_manage_script
       ;;
     bots|list-bots|bot-list)
       open_list_bots_script
       ;;
-    auto-on|automanage-on|Р°РІС‚Рѕ-РІРєР»)
+    auto-on|automanage-on|авто-вкл)
       enable_manage_autostart
       ;;
-    auto-off|automanage-off|Р°РІС‚Рѕ-РІС‹РєР»)
+    auto-off|automanage-off|авто-выкл)
       disable_manage_autostart
       ;;
-    purge|remove|СѓРґР°Р»РёС‚СЊ)
+    purge|remove|удалить)
       purge_bot
       ;;
-    -h|--help|help|РїРѕРјРѕС‰СЊ)
+    -h|--help|help|помощь)
       usage
       ;;
     *)
-      echo "РќРµРёР·РІРµСЃС‚РЅР°СЏ РєРѕРјР°РЅРґР°: $cmd"
+      echo "Неизвестная команда: $cmd"
       usage
       exit 1
       ;;
